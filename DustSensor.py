@@ -17,6 +17,7 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 
 import config
+import datetime, json, publishMQTT
 
 #print("config.DustSensorSCL=", config.DustSensorSCL)
 #print("config.DustSensorSDA=", config.DustSensorSDA)
@@ -24,6 +25,9 @@ import config
 import state
 GPIO.setup(12, GPIO.OUT)
 GPIO.output(12, True)
+
+SENSOR_NAME = 'Laser PM2.5 Sensor (HM3301)'
+SENSOR_CHANNEL = 20
 
 def powerOnDustSensor():
         GPIO.setup(config.DustSensorPowerPin, GPIO.OUT)
@@ -48,44 +52,55 @@ except:
     hm3301 = SDL_Pi_HM3301.SDL_Pi_HM3301(SDA= config.DustSensorSDA, SCL = config.DustSensorSCL, pi=myPi)
 
 def read_AQI():
+  print('Inside dust sensor...')
+  if (config.SWDEBUG):
+      print ('###############')
+      print ("Reading AQI")
+      print ('###############')
 
+  if (config.SWDEBUG):
+      print ("Turning Dust Power On")
+  powerOnDustSensor()
+
+
+
+  # delay for 30 seconds for calibrated reading
+
+  time.sleep(30)
+  time.sleep(0.1)
+
+
+  myData = hm3301.get_data()
+  if (config.SWDEBUG):
+    print ("data=",myData)
+  if (hm3301.checksum() != True):
       if (config.SWDEBUG):
-          print ("###############")
-          print ("Reading AQI")
-          print ("###############")
-
-      if (config.SWDEBUG):
-          print ("Turning Dust Power On")
-      powerOnDustSensor()
-
-   
-
-      # delay for 30 seconds for calibrated reading
-
-      time.sleep(30)
-      time.sleep(0.1)
-
-
+        print("Checksum Error!")
       myData = hm3301.get_data()
-      if (config.SWDEBUG):
-        print ("data=",myData)
       if (hm3301.checksum() != True):
-          if (config.SWDEBUG):
-            print("Checksum Error!")
-          myData = hm3301.get_data()
-          if (hm3301.checksum() != True):
-                if (config.SWDEBUG):
-                    print("2 Checksum Errors!")
-                    return 0
+            if (config.SWDEBUG):
+                print("2 Checksum Errors!")
+                return 0
 
-      myAQI = hm3301.get_aqi()
-      if (config.SWDEBUG):
-        hm3301.print_data()
-        print ("AQI=", myAQI)
-      
-      #hm3301.close()
-      powerOffDustSensor()
-      state.AQI = myAQI
+  myAQI = hm3301.get_aqi()
+  if (config.SWDEBUG):
+    hm3301.print_data()
+    print ("AQI=", myAQI)
+  
+  #hm3301.close()
+  powerOffDustSensor()
+  # state.AQI = myAQI
+  reading = {
+    "time": datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S %z'),
+    "model": SENSOR_NAME,
+    "channel": SENSOR_CHANNEL,
+    "reading": {
+      "value": myAQI,
+      "units": "AQI"
+    }
+  }
+
+  publishMQTT.publish('ws/mallory/airquality/telemetry/', json.dumps(reading))
       
 def print_data():
     hm3301.print_data()

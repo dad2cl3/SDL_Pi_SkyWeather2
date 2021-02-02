@@ -11,7 +11,7 @@
 # imports
 # Check for user imports
 from __future__ import print_function
-
+import json
 import config
 
 config.SWVERSION = "019"
@@ -53,7 +53,7 @@ def ap_my_listener(event):
 	
 def shutdownPi(why):
 
-   pclogging.systemog(config.INFO, "Pi Shutting Down: %s" % why)
+   pclogging.systemlog(config.INFO, "Pi Shutting Down: %s" % why)
    sendemail.sendEmail("test", "SkyWeather2 Shutting down:"+ why, "The SkyWeather2 Raspberry Pi shutting down.", config.notifyAddress,  config.fromAddress, "");
    sys.stdout.flush()
    time.sleep(10.0)
@@ -225,7 +225,7 @@ import publishMQTT
 scheduler = BackgroundScheduler()
 
 # for debugging
-scheduler.add_listener(ap_my_listener, apscheduler.events.EVENT_JOB_ERROR)
+# scheduler.add_listener(ap_my_listener, apscheduler.events.EVENT_JOB_ERROR)
 
 ##############
 # setup tasks
@@ -237,20 +237,20 @@ wiredSensors.readWiredSensors(bmp280, hdc1080)
 scheduler.add_job(tasks.tick, 'interval', seconds=60)
 
 # read wireless sensor package
-scheduler.add_job(wirelessSensors.readSensors) # run in background
+# scheduler.add_job(wirelessSensors.readSensors) # run in background
 
 # read wired sensor package
 scheduler.add_job(wiredSensors.readWiredSensors, 'interval', args=[bmp280, hdc1080], seconds = 30) 
 
-if (config.SWDEBUG):
+# if (config.SWDEBUG):
     # print state
-    scheduler.add_job(state.printState, 'interval', seconds=60)
+    # scheduler.add_job(state.printState, 'interval', seconds=60)
 
-if (config.USEBLYNK):
-    scheduler.add_job(updateBlynk.blynkStateUpdate, 'interval', seconds=30)
+# if (config.USEBLYNK):
+    # scheduler.add_job(updateBlynk.blynkStateUpdate, 'interval', seconds=30)
 
-if (config.MQTT_Enable):
-    scheduler.add_job(publishMQTT.publish, 'interval', seconds=config.MQTT_Send_Seconds)
+# if (config.MQTT_Enable):
+    # cheduler.add_job(publishMQTT.publish, 'interval', seconds=config.MQTT_Send_Seconds)
         
 scheduler.add_job(watchDog.patTheDog, 'interval', seconds=10)   # reset the WatchDog Timer
 
@@ -259,26 +259,42 @@ scheduler.add_job(watchDog.patTheDog, 'interval', seconds=10)   # reset the Watc
 scheduler.add_job(rebootPi, 'cron', day='5-30/5', hour=0, minute=4, args=["5 day Reboot"]) 
 	
 #check for Barometric Trend (every 15 minutes)
-scheduler.add_job(util.barometricTrend, 'interval', seconds=15*60)
+# scheduler.add_job(util.barometricTrend, 'interval', seconds=15*60)
 
 if (config.DustSensor_Present):
-    scheduler.add_job(DustSensor.read_AQI, 'interval', seconds=60*12)
+    print('Reading dust sensor...')
+    scheduler.add_job(DustSensor.read_AQI, 'interval', seconds=60*12) # SwitchDoc Labs frequency
+    # scheduler.add_job(DustSensor.read_AQI, 'interval', seconds=60*2) # my testing sample frequency
    
 
 # weather sensors
 
-scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=15*60)
+# scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=15*60)
 #scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=5*60)
-scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15*60)
+# scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15*60)
 #scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=5*60)
         
-
-
 # sky camera
 if (config.USEWEATHERSTEM):
+    # send one-time message to MQTT broker to setup configuration parameters for WeatherStem API call
+    payload = {
+        'SkyWeatherVersion': config.SWVERSION,
+        'SkyWeatherHardware': config.STATIONHARDWARE,
+        'api_key': state.WeatherSTEMHash,
+        'device': {
+            'key': config.STATIONKEY,
+            'MAC': config.STATIONMAC
+        },
+        'utc': '',
+        'sensors': []
+    }
+
+    topic = 'ws/mallory/station/config/'
+
+    publishMQTT.publish(topic, json.dumps(payload))
+
     if (config.Camera_Present):
         scheduler.add_job(SkyCamera.takeSkyPicture, 'interval', seconds=config.INTERVAL_CAM_PICS__SECONDS) 
-
 
 # start scheduler
 scheduler.start()
@@ -288,13 +304,7 @@ print ("-----------------")
 scheduler.print_jobs()
 print ("-----------------")
 
-
-
 # Main Loop
-
 while True:
 
     time.sleep(1.0)
-
-
-
