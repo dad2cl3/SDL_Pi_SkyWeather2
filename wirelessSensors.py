@@ -22,6 +22,8 @@ import time
 import os
 import signal
 
+import publishMQTT
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -31,6 +33,22 @@ cmd = [ '/usr/local/bin/rtl_433', '-q', '-F', 'json', '-R', '146', '-R', '147']
 #   A few helper functions...
 
 ThreadStop = False;
+
+# need to be timezone aware for Grafana
+def add_timezone(data):
+    data = json.loads(data)
+
+    if 'time' in data:
+        # expected format is %Y-%m-%d %H:%M:%S
+        local_time = datetime.datetime.strptime(data['time'], '%Y-%m-%d %H:%M:%S').astimezone()
+        # print(local_time)
+        utc_time = local_time.astimezone(datetime.timezone.utc)
+        # print(utc_time)
+        utc_time_str = utc_time.strftime('%Y-%m-%d %H:%M:%S %z')
+        data['time'] = utc_time_str
+    
+    return json.dumps(data)
+
 
 def nowStr():
     return( datetime.datetime.now().strftime( '%Y-%m-%d %H:%M:%S'))
@@ -61,12 +79,16 @@ def randomadd(value, spread):
 # process functions
 
 def processF020(sLine):
+    topic = 'ws/mallory/telemetry/'
 
     if (config.SWDEBUG):
         sys.stdout.write("processing FT020T Data\n")
         sys.stdout.write('This is the raw data: ' + sLine + '\n')
 
-    var = json.loads(sLine)
+    sLine = add_timezone(sLine)
+    publishMQTT(topic, sLine)
+
+    '''var = json.loads(sLine)
 
     # outside temperature and Humidity
 
@@ -139,17 +161,22 @@ def processF020(sLine):
     #if (config.SWDEBUG):
     #    print("currentJSON = ", state.StateJSON)
     state.buildJSONSemaphore.release()
-    #print("buildJSONSemaphore released")
+    #print("buildJSONSemaphore released")'''
 
 
 
 # processes Inside Temperature and Humidity
 def processF016TH(sLine):
+    topic = 'ws/mallory/telemetry/'
+
     if (config.SWDEBUG):
         sys.stdout.write('Processing F016TH data'+'\n')
         sys.stdout.write('This is the raw data: ' + sLine + '\n')
     
-    var = json.loads(sLine)
+    sLine = add_timezone(sLine)
+    publishMQTT.publish(topic, sLine)
+    
+    '''var = json.loads(sLine)
 
     state.mainID = var["device"] + var["channel"]
     state.lastIndoorReading = nowStr()
@@ -175,7 +202,7 @@ def processF016TH(sLine):
     #if (config.SWDEBUG):
     #    print("currentJSON = ", state.StateJSON)
     state.buildJSONSemaphore.release()
-    #print("buildJSONSemaphore released")
+    #print("buildJSONSemaphore released")'''
 
 # main read 433HMz Sensor Loop
 def readSensors():
