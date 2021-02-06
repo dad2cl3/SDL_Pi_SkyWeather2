@@ -86,7 +86,7 @@ def processF020(sLine):
         sys.stdout.write('This is the raw data: ' + sLine + '\n')
 
     sLine = add_timezone(sLine)
-    publishMQTT(topic, sLine)
+    publishMQTT.publish(topic, sLine)
 
     '''var = json.loads(sLine)
 

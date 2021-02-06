@@ -237,7 +237,7 @@ wiredSensors.readWiredSensors(bmp280, hdc1080)
 scheduler.add_job(tasks.tick, 'interval', seconds=60)
 
 # read wireless sensor package
-# scheduler.add_job(wirelessSensors.readSensors) # run in background
+scheduler.add_job(wirelessSensors.readSensors) # run in background
 
 # read wired sensor package
 scheduler.add_job(wiredSensors.readWiredSensors, 'interval', args=[bmp280, hdc1080], seconds = 30) 
