@@ -8,8 +8,16 @@ User=root
 Group=root
 StandardOutput=file:/var/pyapps/SDL_Pi_SkyWeather2/logs/skyweather2.out
 StandardError=file:/var/pyapps/SDL_Pi_SkyWeather2/logs/skyweather2.err
+<<<<<<< HEAD
 WorkingDirectory=/var/pyapps/SDL_Pi_SkyWeather2
 ExecStart=/usr/bin/python3 /var/pyapps/SDL_Pi_SkyWeather2/SkyWeather2.py
 
 [Install]
 WantedBy=multi-user.target
+=======
+WorkingDirectory=/var/pyapps/SDL_Pi_SkyWeatherRack2
+ExecStart=/usr/bin/python3 /var/pyapps/SDL_Pi_SkyWeather2/SkyWeather2.py
+
+[Install]
+WantedBy=multi-user.target
+>>>>>>> d648c5151cf56cb4d938eaa9a54f80c4f031a59b
