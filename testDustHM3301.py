@@ -3,6 +3,7 @@
 
 # must run "sudo pigpiod" before starting
 import sys
+
 sys.path.append('./SDL_Pi_HM3301')
 
 import subprocess
@@ -14,46 +15,47 @@ import config
 
 import RPi.GPIO as GPIO
 
+GPIO.setmode(GPIO.BCM)
+
+GPIO.setup(config.DustSensorPowerPin, GPIO.OUT)
+GPIO.output(config.DustSensorPowerPin, True)
+
 #
 if (config.SWDEBUG):
     print("Starting pigpio daemon")
 
 # kill all pigpio instances
 try:
-    cmd = [ 'killall', 'pigpiod' ]
+    cmd = ['killall', 'pigpiod']
     output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     print(output)
     time.sleep(5)
 except:
-    #print(traceback.format_exc())
+    # print(traceback.format_exc())
     pass
 
-cmd = [ '/usr/bin/pigpiod' ]
+cmd = ['/usr/bin/pigpiod']
 output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 print(output)
 import DustSensor
 
 time.sleep(0.01)
 
-GPIO.setup(12, GPIO.OUT)
-GPIO.output(12, True)
-
 try:
     while 1:
-
         DustSensor.powerOnDustSensor()
         time.sleep(3)
         myData = DustSensor.get_data()
-        print ("data=",myData)
+        print("data=", myData)
         myAQI = DustSensor.get_aqi()
         DustSensor.print_data()
-        print ("AQI=", myAQI)
+        print("AQI=", myAQI)
         DustSensor.powerOffDustSensor()
 
         time.sleep(3)
 
 except:
-    #DustSensor.powerOffDustSensor()
+    # DustSensor.powerOffDustSensor()
     print(traceback.format_exc())
 finally:
     GPIO.cleanup()
