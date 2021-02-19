@@ -12,7 +12,7 @@ import traceback
 import pigpio
 import config
 
-
+import RPi.GPIO as GPIO
 
 #
 if (config.SWDEBUG):
@@ -33,10 +33,11 @@ output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 print(output)
 import DustSensor
 
-
-
-
 time.sleep(0.01)
+
+GPIO.setup(12, GPIO.OUT)
+GPIO.output(12, True)
+
 try:
     while 1:
 
@@ -54,3 +55,5 @@ try:
 except:
     #DustSensor.powerOffDustSensor()
     print(traceback.format_exc())
+finally:
+    GPIO.cleanup()

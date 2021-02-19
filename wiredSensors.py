@@ -8,7 +8,6 @@ from __future__ import print_function
 from past.utils import old_div
 import config
 
-
 import sys
 
 import datetime
@@ -23,21 +22,31 @@ SENSOR_CHANNEL = 21
 
 
 def readWiredSensors(bmp280, hdc1080):
-
     # read wired sensors
 
-
-    if (config.BMP280_Present):	
+    if config.BMP280_Present:
         try:
             reading = {
                 'time': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S %z'),
                 'model': SENSOR_NAME,
                 'channel': SENSOR_CHANNEL,
                 'reading': {
-                    'barometric_temperature': round(bmp280.get_temperature(), 2),
-                    'barometric_pressure': round(old_div(bmp280.get_pressure(),1000)*100, 5),
-                    'altitude': round(bmp280.get_altitude(), 4),
-                    'barometric_sea_level_pressure': round(old_div(bmp280.get_sealevel_pressure(config.BMP280_Altitude_Meters),1000)*100, 5)
+                    'temperature': {
+                        'value': round(bmp280.get_temperature(), 2),
+                        'units': 'F'
+                    },
+                    'pressure': {
+                        'value': round(old_div(bmp280.get_pressure(), 1000) * 100, 5),
+                        'units': 'hPa'
+                    },
+                    'altitude': {
+                        'value': round(bmp280.get_altitude(), 4),
+                        'units': 'm'
+                    },
+                    'sea_level_pressure': {
+                        'value': round(old_div(bmp280.get_sealevel_pressure(config.BMP280_Altitude_Meters), 1000) * 100, 5),
+                        'units': 'hPa'
+                    }
                 }
             }
 
@@ -48,17 +57,14 @@ def readWiredSensors(bmp280, hdc1080):
             # state.BarometricPressureSeaLevel = round(old_div(bmp280.get_sealevel_pressure(config.BMP280_Altitude_Meters),1000)*100, 5)
         except:
             if (config.SWDEBUG):
-                print(traceback.format_exc()) 
+                print(traceback.format_exc())
                 print(("readWiredSensors Unexpected error:", sys.exc_info()[0]))
 
-    #print("Looking for buildJSONSemaphore Acquire")
+    # print("Looking for buildJSONSemaphore Acquire")
     # state.buildJSONSemaphore.acquire()
-    #print("buildJSONSemaphore Acquired")
+    # print("buildJSONSemaphore Acquired")
     # state.StateJSON = buildJSON.getStateJSON()
-    #if (config.SWDEBUG):
+    # if (config.SWDEBUG):
     #    print("currentJSON = ", state.StateJSON)
     # state.buildJSONSemaphore.release()
-    #print("buildJSONSemaphore Released")
-
-
-
+    # print("buildJSONSemaphore Released")

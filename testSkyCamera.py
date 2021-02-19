@@ -6,15 +6,13 @@ import config
 import state
 import SkyCamera
 
-
-#Establish WeatherSTEMHash
+# Establish WeatherSTEMHash
 if (config.USEWEATHERSTEM == True):
     state.WeatherSTEMHash = SkyCamera.SkyWeatherKeyGeneration(config.STATIONKEY)
 
     print("config.STATIONKEY=", config.STATIONKEY)
 # test SkyWeather Camera and WeatherSTEM
-print ("taking SkyPicture")
+print("taking SkyPicture")
 SkyCamera.takeSkyPicture()
-print ("sending SkyCamera")
-SkyCamera.sendSkyWeather()
-
+# print("sending SkyCamera")
+# SkyCamera.sendSkyWeather()

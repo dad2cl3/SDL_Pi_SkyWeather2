@@ -8,18 +8,16 @@ import state
 
 import io, hashlib
 
-
 from PIL import ImageFont, ImageDraw, Image
 import traceback
 import util
 import datetime as dt
 
-
 import config
 import json, publishMQTT
 
-def SkyWeatherKeyGeneration(userKey):
 
+def SkyWeatherKeyGeneration(userKey):
     catkey = "AZWqNqDMhvK8Lhbb2jtk1bucj0s2lqZ6" + userKey
 
     md5result = hashlib.md5(catkey.encode())
@@ -28,7 +26,6 @@ def SkyWeatherKeyGeneration(userKey):
 
 
 def takeSkyPicture():
-
     if (config.SWDEBUG):
         print("--------------------")
         print("SkyCam Picture Taken")
@@ -76,7 +73,7 @@ def takeSkyPicture():
         text_size = font.getsize(myText)
 
         # set button size + 10px margins
-        button_size = (text_size[0]+20, text_size[1]+10)
+        button_size = (text_size[0] + 20, text_size[1] + 10)
 
         # create image with correct size and black background
         button_img = Image.new('RGBA', button_size, "black")
@@ -93,31 +90,32 @@ def takeSkyPicture():
         size = 64
         WSLimg = Image.open("static/WeatherSTEMLogoSkyBackground.png")
         WSLimg.thumbnail((size, size), Image.ANTIALIAS)
-        pil_im.paste(WSLimg, (0, bg_h-size))
+        pil_im.paste(WSLimg, (0, bg_h - size))
 
         # SkyWeather log in lower right
         SWLimg = Image.open("static/SkyWeatherLogoSymbol.png")
         SWLimg.thumbnail((size, size), Image.ANTIALIAS)
-        pil_im.paste(SWLimg, (bg_w-size, bg_h-size))
+        pil_im.paste(SWLimg, (bg_w - size, bg_h - size))
 
         # publish the image to MQTT
         with io.BytesIO() as file_like_img:
-                # save the PIL Image to file-like object
-                pil_im.save(file_like_img, 'JPEG')
-                # read the image data in file-like object
-                img_data = file_like_img.getvalue()
-                # encode image data
-                encoded_img = base64.b64encode(img_data)
-                encoded_img = encoded_img.decode('utf-8')
+            # save the PIL Image to file-like object
+            pil_im.save(file_like_img, 'JPEG')
+            # read the image data in file-like object
+            img_data = file_like_img.getvalue()
+            # encode image data
+            encoded_img = base64.b64encode(img_data)
+            encoded_img = encoded_img.decode('utf-8')
 
-                reading = {
-                        'name': 'Sky Camera',
-                        'image': encoded_img
-                }
+            reading = {
+                'time': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S %z'),
+                'name': 'Sky Camera',
+                'image': encoded_img
+            }
 
-                topic = 'ws/mallory/camera/'
-
-                publishMQTT.publish(topic, json.dumps(reading))
+            topic = 'ws/mallory/camera/'
+            # print('Publishing image to topic {0}'.format(topic)) # debug
+            publishMQTT.publish(topic, json.dumps(reading))
 
         # Save the image
         pil_im.save('dash_app/assets/skycamera.jpg', format='JPEG')
@@ -126,287 +124,279 @@ def takeSkyPicture():
 
         time.sleep(2)
 
-    except:
-            if (config.SWDEBUG):
-                print(traceback.format_exc())
-                print("--------------------")
-                print("SkyCam Picture Failed")
-                print("--------------------")
+    except Exception as e:
+        if (config.SWDEBUG):
+            print(traceback.format_exc())
+            print("--------------------")
+            print("SkyCam Picture Failed")
+            print("--------------------")
 
     finally:
         try:
             camera.close()
-        except:
+        except Exception as e:
             if (config.SWDEBUG):
                 print("--------------------")
                 print("SkyCam Close Failed ")
                 print("--------------------")
 
     # if (config.USEWEATHERSTEM == True):
-        # sendSkyWeather()
+    #     sendSkyWeather()
 
 
 def sendSkyWeather():
-
     # defining the api-endpoint
     API_ENDPOINT = "https://skyweather.weatherstem.com/"
 
     with open("static/skycamera.jpg", "rb") as image_file:
-       encoded_string = base64.b64encode(image_file.read())
+        encoded_string = base64.b64encode(image_file.read())
 
     if (config.SWDEBUG):
         print("--------------------")
         print("SkyCam Package Sending")
         print("--------------------")
         print("API Key:", state.WeatherSTEMHash)
-    if(state.barometricTrend == True):
+    if (state.barometricTrend == True):
         bptrendvalue = "Rising"
     else:
         bptrendvalue = "Falling"
 
     currentTime = time.time()
 
-    print("------->Sea Level", state.BarometricPressureSeaLevel*10.0)
+    print("------->Sea Level", state.BarometricPressureSeaLevel * 10.0)
     data = {
-                "SkyWeatherVersion": config.SWVERSION,
-                "SkyWeatherHardware": config.STATIONHARDWARE,
-                "api_key": state.WeatherSTEMHash,
+        "SkyWeatherVersion": config.SWVERSION,
+        "SkyWeatherHardware": config.STATIONHARDWARE,
+        "api_key": state.WeatherSTEMHash,
 
-	"device": {
-                "key":  config.STATIONKEY,
-                "MAC": config.STATIONMAC,
-	},
-	"utc": currentTime,
-	"sensors": [
-                {
-			"name": "OutsideTemperature",
-			"value": state.OutdoorTemperature,
-                        "units": "C"
-
-		},
-		{
-			"name": "OutsideHumidity",
-			"value": state.OutdoorHumidity,
-                        "units": "%"
-
-		},
-		{
-			"name": "InsideTemperature",
-			"value": state.IndoorTemperature,
-                        "units": "C"
-		},
-		{
-			"name": "InsideHumidity",
-			"value": state.IndoorHumidity,
-                        "units": "%"
-
-		},
-		{
-			"name": "RainInLast60Minutes",
-			"value": state.Rain60Minutes,
-                        "units": "mm/h"
-		},
-		{
-			"name": "VisibleSunlight",
-			"value": state.SunlightVisible,
-                        "units": "lux"
-		},
-                {
-                        "name": "IRSunlight",
-                        "value": "0.0",
-                        "units": "lux"
-                },
-        {
-            "name": "UVSunlightt",
-            "value": "0.0",
-                        "units": "lux"
+        "device": {
+            "key": config.STATIONKEY,
+            "MAC": config.STATIONMAC,
         },
-		{
-			"name": "WindSpeed",
-			"value": state.WindSpeed,
-                        "units": "kph"
-		},
-		{
-			"name": "WindGust",
-			"value": state.WindGust,
-                        "units": "kph"
-		},
-		{
-			"name": "WindDirection",
-			"value": state.WindDirection,
-                        "units": "degrees"
-		},
-		{
-			"name": "totalRain",
-			"value": state.TotalRain,
-                        "units": "mm"
+        "utc": currentTime,
+        "sensors": [
+            {
+                "name": "OutsideTemperature",
+                "value": state.OutdoorTemperature,
+                "units": "C"
 
-		},
-		{
-			"name": "BarometricPressure",
-			"value": state.BarometricPressure*10.0,
-                        "units": "hPa"
+            },
+            {
+                "name": "OutsideHumidity",
+                "value": state.OutdoorHumidity,
+                "units": "%"
 
-		},
-		{
-			"name": "Altitude",
-			"value": state.Altitude,
-                        "units": "m"
-		},
-		{
-			"name": "SeaLevelPressure",
-			"value": state.BarometricPressureSeaLevel*10.0,
-                        "units": "hPa"
-		},
-		{
-			"name": "BarometricTrend",
-			"value": bptrendvalue,
-                        "units": ""
+            },
+            {
+                "name": "InsideTemperature",
+                "value": state.IndoorTemperature,
+                "units": "C"
+            },
+            {
+                "name": "InsideHumidity",
+                "value": state.IndoorHumidity,
+                "units": "%"
 
+            },
+            {
+                "name": "RainInLast60Minutes",
+                "value": state.Rain60Minutes,
+                "units": "mm/h"
+            },
+            {
+                "name": "VisibleSunlight",
+                "value": state.SunlightVisible,
+                "units": "lux"
+            },
+            {
+                "name": "IRSunlight",
+                "value": "0.0",
+                "units": "lux"
+            },
+            {
+                "name": "UVSunlightt",
+                "value": "0.0",
+                "units": "lux"
+            },
+            {
+                "name": "WindSpeed",
+                "value": state.WindSpeed,
+                "units": "kph"
+            },
+            {
+                "name": "WindGust",
+                "value": state.WindGust,
+                "units": "kph"
+            },
+            {
+                "name": "WindDirection",
+                "value": state.WindDirection,
+                "units": "degrees"
+            },
+            {
+                "name": "totalRain",
+                "value": state.TotalRain,
+                "units": "mm"
 
-		},
-		{
-			"name": "OutdoorAirQuality",
-			"value": state.AQI,
-                        "units": "AQI"
-		},
+            },
+            {
+                "name": "BarometricPressure",
+                "value": state.BarometricPressure * 10.0,
+                "units": "hPa"
 
-		# {
-		#	"name":"UVSunlightIndex",
-		#	"value": state.SunlightUVIndex,
-        #                "units" : "index"
-		# }
+            },
+            {
+                "name": "Altitude",
+                "value": state.Altitude,
+                "units": "m"
+            },
+            {
+                "name": "SeaLevelPressure",
+                "value": state.BarometricPressureSeaLevel * 10.0,
+                "units": "hPa"
+            },
+            {
+                "name": "BarometricTrend",
+                "value": bptrendvalue,
+                "units": ""
 
-                ],
-	"solarpower": [
-		{
-			"name": "BatteryVoltage",
-			"value": state.batteryVoltage,
-                        "units": "V"
+            },
+            {
+                "name": "OutdoorAirQuality",
+                "value": state.AQI,
+                "units": "AQI"
+            },
 
+            # {
+            #	"name":"UVSunlightIndex",
+            #	"value": state.SunlightUVIndex,
+            #                "units" : "index"
+            # }
 
-		},
-		{
-			"name": "BatteryCurrent",
-			"value": state.batteryCurrent,
-                        "units": "ma"
-		},
-		{
-                        "name": "SolarVoltage",
-                        "value": state.solarVoltage,
-                        "units": "V"
-                },
-		{
-			"name": "SolarCurrent",
-			"value": state.solarCurrent,
-                        "units": "ma"
+        ],
+        "solarpower": [
+            {
+                "name": "BatteryVoltage",
+                "value": state.batteryVoltage,
+                "units": "V"
 
-		},
-                {
-			"name": "LoadVoltage",
-			"value": state.loadVoltage,
-                        "units": "V"
-		},
-		{
-			"name": "LoadCurrent",
-			"value": state.loadCurrent,
-                        "units": "ma"
-		},
-		{
-			"name": "BatteryPower",
-			"value": state.batteryPower,
-                        "units": "W"
-		},
-		{
-			"name": "SolarPower",
-			"value": state.solarPower,
-                        "units": "W"
-		},
-		{
-			"name": "LoadPower",
-			"value": state.loadPower,
-                        "units": "W"
-		},
-		{
-			"name": "BatteryCharge",
-			"value": state.batteryCharge,
-                        "units": "%"
+            },
+            {
+                "name": "BatteryCurrent",
+                "value": state.batteryCurrent,
+                "units": "ma"
+            },
+            {
+                "name": "SolarVoltage",
+                "value": state.solarVoltage,
+                "units": "V"
+            },
+            {
+                "name": "SolarCurrent",
+                "value": state.solarCurrent,
+                "units": "ma"
 
-		},
-		{
-			"name": "WXBatteryVoltage",
-			"value": 0,
-                        "units": "V"
+            },
+            {
+                "name": "LoadVoltage",
+                "value": state.loadVoltage,
+                "units": "V"
+            },
+            {
+                "name": "LoadCurrent",
+                "value": state.loadCurrent,
+                "units": "ma"
+            },
+            {
+                "name": "BatteryPower",
+                "value": state.batteryPower,
+                "units": "W"
+            },
+            {
+                "name": "SolarPower",
+                "value": state.solarPower,
+                "units": "W"
+            },
+            {
+                "name": "LoadPower",
+                "value": state.loadPower,
+                "units": "W"
+            },
+            {
+                "name": "BatteryCharge",
+                "value": state.batteryCharge,
+                "units": "%"
 
-		},
-		{
-			"name": "WXBatteryCurrent",
-			"value": 0,
-                        "units": "ma"
-		},
-		{
-			"name": "WXSolarVoltage",
-			"value": 0,
-                        "units": "V"
-		},
-		{
-			"name": "WXSolarCurrent",
-			"value": 0,
-                        "units": "ma"
-		},
-		{
-			"name": "WXLoadVoltage",
-			"value": 0,
-                        "units": "V"
-		},
-		{
-			"name": "WXLoadCurrent",
-			"value": 0,
-                        "units": "ma"
-		},
-		{
-			"name": "WXBatteryPOWER",
-			"value": 0,
-                        "units": "W"
-		},
-		{
-			"name": "WXSolarPower",
-			"value": 0,
-                        "units": "W"
-		},
-		{
-			"name": "WXLoadPower",
-			"value": 0,
-                        "units": "W"
-		},
-		{
-			"name": "WXBatteryCharge",
-			"value": 0,
-                        "units": "%"
+            },
+            {
+                "name": "WXBatteryVoltage",
+                "value": 0,
+                "units": "V"
 
+            },
+            {
+                "name": "WXBatteryCurrent",
+                "value": 0,
+                "units": "ma"
+            },
+            {
+                "name": "WXSolarVoltage",
+                "value": 0,
+                "units": "V"
+            },
+            {
+                "name": "WXSolarCurrent",
+                "value": 0,
+                "units": "ma"
+            },
+            {
+                "name": "WXLoadVoltage",
+                "value": 0,
+                "units": "V"
+            },
+            {
+                "name": "WXLoadCurrent",
+                "value": 0,
+                "units": "ma"
+            },
+            {
+                "name": "WXBatteryPOWER",
+                "value": 0,
+                "units": "W"
+            },
+            {
+                "name": "WXSolarPower",
+                "value": 0,
+                "units": "W"
+            },
+            {
+                "name": "WXLoadPower",
+                "value": 0,
+                "units": "W"
+            },
+            {
+                "name": "WXBatteryCharge",
+                "value": 0,
+                "units": "%"
 
-		}
+            }
 
-	]
+        ]
         ,
-	"cameras":[
-		{
-			"name":"Sky Camera",
-                        "image": encoded_string
-		}
-	]
+        "cameras": [
+            {
+                "name": "Sky Camera",
+                "image": encoded_string
+            }
+        ]
     }
-    
+
     import json
 
     # sending post request and saving response as response object
-    r = requests.post(url = API_ENDPOINT, json = data) 
+    r = requests.post(url=API_ENDPOINT, json=data)
     # print (data )
     # extracting response text  
-    pastebin_url = r.text 
+    pastebin_url = r.text
     if (config.SWDEBUG):
-        print("The pastebin URL is (r.text):%s"%pastebin_url) 
-
-
-
-        
+        print("The pastebin URL is (r.text):%s" % pastebin_url)
