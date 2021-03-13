@@ -10,7 +10,7 @@ import random
 import sys
 from subprocess import PIPE, Popen, STDOUT
 from threading  import Thread
-#import json
+import json
 import datetime
 import buildJSON
 
@@ -23,6 +23,8 @@ import os
 import signal
 import traceback
 
+import publishMQTT
+
 import MySQLdb as mdb
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -33,7 +35,24 @@ cmd = ['/usr/local/bin/rtl_433', '-q', '-F', 'json', '-R', '146', '-R', '147', '
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 #   A few helper functions...
 
-ThreadStop = False;
+ThreadStop = False
+
+
+# need to be timezone aware for Grafana
+def add_timezone(data):
+    data = json.loads(data)
+
+    if 'time' in data:
+        # expected format is %Y-%m-%d %H:%M:%S
+        local_time = datetime.datetime.strptime(data['time'], '%Y-%m-%d %H:%M:%S').astimezone()
+        # print(local_time)
+        utc_time = local_time.astimezone(datetime.timezone.utc)
+        # print(utc_time)
+        utc_time_str = utc_time.strftime('%Y-%m-%d %H:%M:%S %z')
+        data['time'] = utc_time_str
+
+    return json.dumps(data)
+
 
 def nowStr():
     return( datetime.datetime.now().strftime( '%Y-%m-%d %H:%M:%S'))
@@ -48,6 +67,7 @@ except ImportError:
     from queue import Queue, Empty  # python 3.x
 ON_POSIX = 'posix' in sys.builtin_module_names
 
+
 def enqueue_output(src, out, queue):
     try:
         for line in iter(out.readline, b''):
@@ -55,6 +75,7 @@ def enqueue_output(src, out, queue):
         out.close()
     except:
        pass 
+
 
 def randomadd(value, spread):
 
@@ -71,26 +92,27 @@ def mqtt_publish_single(message, topic):
         traceback.print_exc()
         print('Mosquitto not available')
 
-
-
 # process functions
 
 def processFT020T(sLine, lastFT020TTimeStamp ):
+    topic = 'ws/mallory/telemetry/'
 
     if (config.SWDEBUG):
         sys.stdout.write("processing FT020T Data\n")
         sys.stdout.write('This is the raw data: ' + sLine + '\n')
 
     var = json.loads(sLine)
-    if (lastFT020TTimeStamp == var["time"]):
-        # duplicate
-        if (config.SWDEBUG):
-            sys.stdout.write("duplicate found\n")
-
-        return ""
+    # if (lastFT020TTimeStamp == var["time"]):
+    #     # duplicate
+    #     if (config.SWDEBUG):
+    #         sys.stdout.write("duplicate found\n")
+    #
+    #     return ""
 
     if (config.MQTT_Enable == True):
-        mqtt_publish_single(sLine, "FT020T")
+        # mqtt_publish_single(sLine, "FT020T")
+        sLine = add_timezone(sLine)
+        publishMQTT.publish(topic, sLine)
 
     # now check for adding record
 
@@ -107,14 +129,11 @@ def processFT020T(sLine, lastFT020TTimeStamp ):
         pclogging.systemlog(config.INFO,"Blynk Updates Started")
         state.previousMainReading = state.lastMainReading
 
-
-
     wTemp = var["temperature"]
-
     ucHumi = var["humidity"]
 
-
     wTemp = (wTemp - 400)/10.0
+    # print("Temperature = {0}".format(wTemp))
     # deal with error condtions
     if (wTemp > 140.0):
         # error condition from sensor
@@ -127,26 +146,21 @@ def processFT020T(sLine, lastFT020TTimeStamp ):
     if (ucHumi > 100.0):
         # bad humidity
         # put in previous humidity
-        ucHumi  = state.OutdoorHumidity
+        ucHumi = state.OutdoorHumidity
      
-    state.OutdoorTemperature = round(((wTemp - 32.0)/(9.0/5.0)),2)
-    state.OutdoorHumidity =  ucHumi 
+    state.OutdoorTemperature = round(((wTemp - 32.0)/(9.0/5.0)), 2)
+    state.OutdoorHumidity = ucHumi
 
-    
-        
-    state.WindSpeed =  round(var["avewindspeed"]/10.0, 1)
-    state.WindGust  = round(var["gustwindspeed"]/10.0, 1)
-    state.WindDirection  = var["winddirection"]
-    
-
-
-    state.TotalRain  = round(var["cumulativerain"]/10.0,1)
+    state.WindSpeed = round(var["avewindspeed"]/10.0, 1)
+    state.WindGust = round(var["gustwindspeed"]/10.0, 1)
+    state.WindDirection = var["winddirection"]
+    state.TotalRain = round(var["cumulativerain"]/10.0, 1)
 
     wLight = var["light"]
     if (wLight >= 0x1fffa):
         wLight = wLight | 0x7fff0000
 
-    wUVI =var["uv"]
+    wUVI = var["uv"]
     if (wUVI >= 0xfa):
         wUVI = wUVI | 0x7f00
 
@@ -171,6 +185,7 @@ def processFT020T(sLine, lastFT020TTimeStamp ):
 
 # processes Inside Temperature and Humidity
 def processF016TH(sLine):
+    topic = 'ws/mallory/telemetry/'
     if (config.SWDEBUG):
         sys.stdout.write('Processing F016TH data'+'\n')
         sys.stdout.write('This is the raw data: ' + sLine + '\n')
@@ -181,7 +196,9 @@ def processF016TH(sLine):
     state.lastIndoorReading = nowStr()
 
     if (config.MQTT_Enable == True):
-        mqtt_publish_single(sLine, "F016TH")
+        # mqtt_publish_single(sLine, "F016TH")
+        sLine = add_timezone(sLine)
+        publishMQTT.publish(topic, sLine)
 
 
 
@@ -208,9 +225,6 @@ def processF016TH(sLine):
     #   pass
     state.buildJSONSemaphore.release()
     #print("buildJSONSemaphore released")
-
-
-
 
 
 # processes Generic Packets 
@@ -246,8 +260,8 @@ def processWeatherSenseTB(sLine):
             myTESTDescription = ""
 
             con = mdb.connect(
-                "localhost",
-                "root",
+                "192.168.0.48",
+                "jachal",
                 config.MySQL_Password,
                 "WeatherSenseWireless"
             )
@@ -308,16 +322,16 @@ def processWeatherSenseAQI(sLine):
             myTESTDescription = ""
 
             con = mdb.connect(
-                "localhost",
-                "root",
+                "192.168.0.48",
+                "jachal",
                 config.MySQL_Password,
                 "WeatherSenseWireless"
             )
 
             cur = con.cursor()
-            batteryPower =  float(state["batterycurrent"])* float(state["batteryvoltage"])/1000.0
-            loadPower  =  float(state["loadcurrent"])* float(state["loadvoltage"])/1000.0
-            solarPower =  float(state["solarpanelcurrent"])* float(state["solarpanelvoltage"])/1000.0
+            batteryPower = float(state["batterycurrent"])* float(state["batteryvoltage"])/1000.0
+            loadPower = float(state["loadcurrent"])* float(state["loadvoltage"])/1000.0
+            solarPower = float(state["solarpanelcurrent"])* float(state["solarpanelvoltage"])/1000.0
             batteryCharge = 0.0
             # calculate AQI 24 Hour
             timeDelta = datetime.timedelta(days=1)
@@ -363,6 +377,7 @@ def processWeatherSenseAQI(sLine):
 
     return
 
+
 def WSread_AQI():
     #read AQI from WeatherSense
 
@@ -373,8 +388,8 @@ def WSread_AQI():
         # close
         try:
             con = mdb.connect(
-                "localhost",
-                "root",
+                "192.168.0.48",
+                "jachal",
                 config.MySQL_Password,
                 "WeatherSenseWireless"
             )
@@ -424,8 +439,8 @@ def processSolarMAX(sLine):
                 myTESTDescription = ""
 
                 con = mdb.connect(
-                    "localhost",
-                    "root",
+                    "192.168.0.48",
+                    "jachal",
                     config.MySQL_Password,
                     "WeatherSenseWireless"
                 )
@@ -548,6 +563,7 @@ def readSensors():
         else: # got line
             pulse -= 1
             sLine = line.decode()
+            # print(sLine) # debug
             lastTimeSensorReceived = time.time()
     
             #   See if the data is something we need to act on...

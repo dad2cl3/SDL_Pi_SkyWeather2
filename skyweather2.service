@@ -1,0 +1,15 @@
+[Unit]
+Description=SkyWeather2
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+StandardOutput=file:/var/pyapps/SDL_Pi_SkyWeather2/logs/skyweather2.out
+StandardError=file:/var/pyapps/SDL_Pi_SkyWeather2/logs/skyweather2.err
+WorkingDirectory=/var/pyapps/SDL_Pi_SkyWeather2
+ExecStart=/usr/bin/python3 /var/pyapps/SDL_Pi_SkyWeather2/SkyWeather2.py
+
+[Install]
+WantedBy=multi-user.target

@@ -17,6 +17,10 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 
 import config
+import datetime, json, publishMQTT
+
+SENSOR_NAME = 'Laser PM2.5 Dust Sensor (HM3301)'
+SENSOR_CHANNEL = 20
 
 #print("config.DustSensorSCL=", config.DustSensorSCL)
 #print("config.DustSensorSDA=", config.DustSensorSDA)
@@ -40,12 +44,19 @@ def powerOffDustSensor():
 myPi = pigpio.pi()
 
 try:
-    hm3301 = SDL_Pi_HM3301.SDL_Pi_HM3301(SDA= config.DustSensorSDA, SCL = config.DustSensorSCL, pi=myPi)
+    hm3301 = SDL_Pi_HM3301.SDL_Pi_HM3301(
+        SDA=config.DustSensorSDA,
+        SCL=config.DustSensorSCL,
+        pi=myPi)
 except:
     myPi.bb_i2c_close(config.DustSensorSDA)
     myPi.stop() 
     
-    hm3301 = SDL_Pi_HM3301.SDL_Pi_HM3301(SDA= config.DustSensorSDA, SCL = config.DustSensorSCL, pi=myPi)
+    hm3301 = SDL_Pi_HM3301.SDL_Pi_HM3301(
+        SDA=config.DustSensorSDA,
+        SCL=config.DustSensorSCL,
+        pi=myPi)
+
 
 def read_AQI():
 
@@ -58,23 +69,25 @@ def read_AQI():
           print ("Turning Dust Power On")
       powerOnDustSensor()
 
-   
-
       # delay for 30 seconds for calibrated reading
-
       time.sleep(30)
       time.sleep(0.1)
 
-
       myData = hm3301.get_data()
       if (config.SWDEBUG):
-        print ("data=",myData)
+        print ("data=", myData)
       if (hm3301.checksum() != True):
           if (config.SWDEBUG):
             print("Checksum Error!")
           myData = hm3301.get_data()
           if (hm3301.checksum() != True):
                 if (config.SWDEBUG):
+                    reading = {
+                        "time": datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S %z'),
+                        "model": SENSOR_NAME,
+                        "channel": SENSOR_CHANNEL
+                    }
+                    publishMQTT.publish('ws/mallory/airquality/telemetry/', json.dumps(reading))
                     print("2 Checksum Errors!")
                     return 0
 
@@ -86,9 +99,23 @@ def read_AQI():
       #hm3301.close()
       powerOffDustSensor()
       state.AQI = myAQI
-      
+
+      reading = {
+          "time": datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S %z'),
+          "model": SENSOR_NAME,
+          "channel": SENSOR_CHANNEL,
+          "reading": {
+              "value": myAQI,
+              "units": "AQI"
+          }
+      }
+
+      publishMQTT.publish('ws/mallory/airquality/telemetry/', json.dumps(reading))
+
+
 def print_data():
     hm3301.print_data()
+
 
 def get_aqi():
       myAQI = hm3301.get_aqi()

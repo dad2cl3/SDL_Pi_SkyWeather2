@@ -1,15 +1,15 @@
-import random
-import subprocess
-import dash
+# import random
+# import subprocess
+# import dash
 import dash_bootstrap_components as dbc
-import dash_html_components as html
+# import dash_html_components as html
 
-from dash.dependencies import Input, Output
+# from dash.dependencies import Input, Output
 import dash_html_components as html
-import dash_core_components as dcc
+# import dash_core_components as dcc
 import dash_daq as daq
-import plotly.express as px 
-import plotly.graph_objs as go
+# import plotly.express as px
+# import plotly.graph_objs as go
 
 import datetime
 import traceback
@@ -19,10 +19,10 @@ import psutil
 # imports
 sys.path.append("../")
 
-import state
+# import state
 import config
 import readJSON
-import json
+# import json
 
 # demo mode
 useRandom = False
@@ -48,7 +48,7 @@ def getWR2Status():
    
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 timeDelta = datetime.timedelta(minutes=30)
@@ -84,7 +84,7 @@ def getWSAQIStatus():
    
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'WeatherSenseWireless');
+                con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'WeatherSenseWireless');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 timeDelta = datetime.timedelta(minutes=60)
@@ -120,7 +120,7 @@ def getWSLightningStatus():
    
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'WeatherSenseWireless');
+                con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'WeatherSenseWireless');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 timeDelta = datetime.timedelta(minutes=60)
@@ -156,7 +156,7 @@ def getWSSolarMAXStatus():
    
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'WeatherSenseWireless');
+                con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'WeatherSenseWireless');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 timeDelta = datetime.timedelta(minutes=60)
@@ -191,7 +191,7 @@ def getWSSolarMAXStatus():
 def getIndoorStatus(channel):
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 timeDelta = datetime.timedelta(minutes=30)

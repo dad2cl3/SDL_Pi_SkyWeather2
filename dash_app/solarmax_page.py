@@ -22,8 +22,8 @@ SolarMAXID = 1
 
 def build_graph1_figure():
     con = mdb.connect(
-        "localhost",
-        "root",
+        "192.168.0.48",
+        "jachal",
         config.MySQL_Password,
         "WeatherSenseWireless"
     )
@@ -57,8 +57,8 @@ def build_graph1_figure():
 
 def build_graph2_figure():
     con = mdb.connect(
-        "localhost",
-        "root",
+        "192.168.0.48",
+        "jachal",
         config.MySQL_Password,
         "WeatherSenseWireless"
     )

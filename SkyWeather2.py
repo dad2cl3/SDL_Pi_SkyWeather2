@@ -11,7 +11,7 @@
 # imports
 # Check for user imports
 from __future__ import print_function
-
+import json
 import config
 
 config.SWVERSION = "023"
@@ -23,7 +23,7 @@ import apscheduler.events
 
 import subprocess
 import pclogging
-import traceback
+# import traceback
 import sys
 import picamera
 
@@ -41,6 +41,7 @@ import SkyCamera
 import os
 # Scheduler Helpers
 
+
 # print out faults inside events
 def ap_my_listener(event):
         if event.exception:
@@ -49,8 +50,6 @@ def ap_my_listener(event):
 
 
 # helper functions
-
-	
 def shutdownPi(why):
 
    pclogging.systemlog(config.INFO, "Pi Shutting Down: %s" % why)
@@ -59,6 +58,7 @@ def shutdownPi(why):
    time.sleep(10.0)
 
    os.system("sudo shutdown -h now")
+
 
 def rebootPi(why):
 
@@ -75,10 +75,9 @@ import MySQLdb as mdb
 
 # SkyWeather2 SQL Database
 try:
-
     con = mdb.connect(
-          "localhost",
-          "root",
+          "192.168.0.48",
+          "jachal",
           config.MySQL_Password,
           "SkyWeather2"
           )
@@ -97,8 +96,8 @@ except:
 try:
 
     con = mdb.connect(
-          "localhost",
-          "root",
+          "192.168.0.48",
+          "jachal",
           config.MySQL_Password,
           "WeatherSenseWireless"
           )
@@ -283,7 +282,7 @@ wiredSensors.readWiredSensors(bmp280, hdc1080)
 scheduler.add_job(tasks.tick, 'interval', seconds=60)
 
 # read wireless sensor package
-scheduler.add_job(wirelessSensors.readSensors) # run in background
+scheduler.add_job(wirelessSensors.readSensors)  # run in background
 
 # read wired sensor package
 scheduler.add_job(wiredSensors.readWiredSensors, 'interval', args=[bmp280, hdc1080], seconds = 30) 
@@ -292,11 +291,11 @@ if (config.SWDEBUG):
     # print state
     scheduler.add_job(state.printState, 'interval', seconds=60)
 
-if (config.USEBLYNK):
-    scheduler.add_job(updateBlynk.blynkStateUpdate, 'interval', seconds=30)
-
-if (config.MQTT_Enable):
-    scheduler.add_job(publishMQTT.publish, 'interval', seconds=config.MQTT_Send_Seconds)
+# if (config.USEBLYNK):
+#     scheduler.add_job(updateBlynk.blynkStateUpdate, 'interval', seconds=30)
+#
+# if (config.MQTT_Enable):
+#     scheduler.add_job(publishMQTT.publish, 'interval', seconds=config.MQTT_Send_Seconds)
         
 scheduler.add_job(watchDog.patTheDog, 'interval', seconds=20)   # reset the WatchDog Timer
 
@@ -323,11 +322,26 @@ scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=15*60)
 
 scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15*60)
 
-        
-
 
 # sky camera
 if (config.USEWEATHERSTEM):
+    # send one-time message to MQTT broker to setup configuration parameters for WeatherStem API call
+    payload = {
+        'SkyWeatherVersion': config.SWVERSION,
+        'SkyWeatherHardware': config.STATIONHARDWARE,
+        'api_key': state.WeatherSTEMHash,
+        'device': {
+            'key': config.STATIONKEY,
+            'MAC': config.STATIONMAC
+        },
+        'utc': '',
+        'sensors': []
+    }
+
+    topic = 'ws/mallory/station/config/'
+
+    publishMQTT.publish(topic, json.dumps(payload))
+
     if (config.Camera_Present):
         scheduler.add_job(SkyCamera.takeSkyPicture, 'interval', seconds=config.INTERVAL_CAM_PICS__SECONDS) 
 
@@ -343,7 +357,6 @@ print ("-----------------")
 
 
 # Main Loop
-
 while True:
 
     time.sleep(1.0)

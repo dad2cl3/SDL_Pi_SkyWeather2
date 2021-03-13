@@ -1,6 +1,6 @@
 # handles updating the IT Sensor Dictionary
 import state
-import datetime
+# import datetime
 
 
 def buildITReading (DeviceID, ChannelID, Temperature, Humidity, BatteryOK, time):
