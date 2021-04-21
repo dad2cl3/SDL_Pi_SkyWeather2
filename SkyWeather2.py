@@ -44,9 +44,10 @@ import os
 
 # print out faults inside events
 def ap_my_listener(event):
-        if event.exception:
-              print (event.exception)
-              print (event.traceback)
+    print(event)
+    if event.exception:
+        print(event.exception)
+        print(event.traceback)
 
 
 # helper functions
@@ -355,11 +356,21 @@ scheduler.print_jobs()
 print ("-----------------")
 
 
+run_flag = True
 
 # Main Loop
-while True:
+while run_flag:
+    try:
+        time.sleep(1.0)
+    except KeyboardInterrupt as ki:
+        run_flag = False
 
-    time.sleep(1.0)
+try:
+    # scheduler.
+    # scheduler.remove_all_jobs()
+    scheduler.shutdown(wait=False)
+except Exception as e:
+    print(e)
 
 
 

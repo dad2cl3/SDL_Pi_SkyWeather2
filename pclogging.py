@@ -51,17 +51,19 @@ def systemlog(level, message):
                 cur.execute(query)
                 con.commit()
 
-
             except:
                 traceback.print_exc()
-                con.rollback()
+                if con:
+                    con.rollback()
                 # sys.exit(1)
             finally:
-                cur.close()
-                con.close()
+                if cur:
+                    cur.close()
+                    del cur
 
-                del cur
-                del con
+                if con:
+                    con.close()
+                    del con
 
 
 def readLastHour24AQI():
@@ -92,15 +94,18 @@ def readLastHour24AQI():
         except mdb.Error as e:
             traceback.print_exc()
             print("Error %d: %s" % (e.args[0], e.args[1]))
-            con.rollback()
+            if con:
+                con.rollback()
             # sys.exit(1)
 
         finally:
-            cur.close()
-            con.close()
+            if cur:
+                cur.close()
+                del cur
 
-            del cur
-            del con
+            if con:
+                con.close()
+                del con
 
 
 import gpiozero
@@ -134,7 +139,8 @@ def get60MinuteRain():
         except mdb.Error as e:
             traceback.print_exc()
             print("Error %d: %s" % (e.args[0], e.args[1]))
-            con.rollback()
+            if con:
+                con.rollback()
             # sys.exit(1)
 
     return 0.0
@@ -163,7 +169,8 @@ def getCalendarDayRain():
         except mdb.Error as e:
             traceback.print_exc()
             print("Error %d: %s" % (e.args[0], e.args[1]))
-            con.rollback()
+            if con:
+                con.rollback()
             # sys.exit(1)
 
     return 0.0
@@ -221,15 +228,18 @@ def writeWeatherRecord():
         except mdb.Error as e:
             traceback.print_exc()
             print("Error %d: %s" % (e.args[0], e.args[1]))
-            con.rollback()
+            if con:
+                con.rollback()
             # sys.exit(1)
 
         finally:
-            cur.close()
-            con.close()
+            if cur:
+                cur.close()
+                del cur
 
-            del cur
-            del con
+            if con:
+                con.close()
+                del con
 
 
 def writeITWeatherRecord():
@@ -239,7 +249,6 @@ def writeITWeatherRecord():
         # commit
         # close
         try:
-
             print("trying database")
             con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
             cur = con.cursor()
@@ -260,12 +269,17 @@ def writeITWeatherRecord():
         except mdb.Error as e:
             traceback.print_exc()
             print("Error %d: %s" % (e.args[0], e.args[1]))
-            con.rollback()
+            if con:
+                con.rollback()
             # sys.exit(1)
 
         finally:
-            cur.close()
-            con.close()
+            if cur:
+                cur.close()
 
-            del cur
-            del con
+                del cur
+
+            if con:
+                con.close()
+
+                del con
