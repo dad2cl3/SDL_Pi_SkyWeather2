@@ -14,7 +14,7 @@ from __future__ import print_function
 import json
 import config
 
-config.SWVERSION = "024"
+config.SWVERSION = "025"
 # system imports
 
 import time
@@ -36,9 +36,11 @@ import wiredSensors
 import sendemail
 import watchDog
 import util
-from  bmp280 import BMP280
+from bmp280 import BMP280
 import SkyCamera
 import os
+
+
 # Scheduler Helpers
 
 
@@ -52,76 +54,96 @@ def ap_my_listener(event):
 
 # helper functions
 def shutdownPi(why):
+    pclogging.systemlog(config.INFO, "Pi Shutting Down: %s" % why)
+    sendemail.sendEmail("test", "SkyWeather2 Shutting down:" + why, "The SkyWeather2 Raspberry Pi shutting down.",
+                        config.notifyAddress, config.fromAddress, "");
+    sys.stdout.flush()
+    time.sleep(10.0)
 
-   pclogging.systemlog(config.INFO, "Pi Shutting Down: %s" % why)
-   sendemail.sendEmail("test", "SkyWeather2 Shutting down:"+ why, "The SkyWeather2 Raspberry Pi shutting down.", config.notifyAddress,  config.fromAddress, "");
-   sys.stdout.flush()
-   time.sleep(10.0)
-
-   os.system("sudo shutdown -h now")
+    os.system("sudo shutdown -h now")
 
 
 def rebootPi(why):
-
-   pclogging.systemlog(config.INFO, "Pi Rebooting: %s" % why)
-   if (config.USEBLYNK):
-     updateBlynk.blynkTerminalUpdate("Pi Rebooting: %s" % why)
-   pclogging.systemlog(config.INFO, "Pi Rebooting: %s" % why)
-   os.system("sudo shutdown -r now")
+    pclogging.systemlog(config.INFO, "Pi Rebooting: %s" % why)
+    if (config.USEBLYNK):
+        updateBlynk.blynkTerminalUpdate("Pi Rebooting: %s" % why)
+    pclogging.systemlog(config.INFO, "Pi Rebooting: %s" % why)
+    os.system("sudo shutdown -r now")
 
 
 import MySQLdb as mdb
 
 # Program Requirement Checking
 
-# SkyWeather2 SQL Database
-try:
-    con = mdb.connect(
-          "192.168.0.48",
-          "jachal",
-          config.MySQL_Password,
-          "SkyWeather2"
-          )
+if (config.enable_MySQL_Logging):
+    # SkyWeather2 SQL Database
 
-except:
-    print("--------")
-    print("MySQL Database SkyWeather2 Not Installed.")
-    print("Run this command:")
-    print("sudo mysql -u root -p < SkyWeather2.sql")
-    print("SkyWeather2 Stopped")
-    print("--------")
-    sys.exit("SkyWeather2 Requirements Error Exit")
+    try:
+        con = mdb.connect(
+            "192.168.0.48",
+            "jachal",
+            config.MySQL_Password,
+            "SkyWeather2"
+        )
 
+    except:
+        print("--------")
+        print("MySQL Database SkyWeather2 Not Installed.")
+        print("Run this command:")
+        print("sudo mysql -u root -p < SkyWeather2.sql")
+        print("SkyWeather2 Stopped")
+        print("--------")
+        sys.exit("SkyWeather2 Requirements Error Exit")
 
-# WeatherSense SQL Database
-try:
+    # WeatherSense SQL Database
+    try:
+        con = mdb.connect(
+            "192.168.0.48",
+            "jachal",
+            config.MySQL_Password,
+            "WeatherSenseWireless"
+        )
 
-    con = mdb.connect(
-          "192.168.0.48",
-          "jachal",
-          config.MySQL_Password,
-          "WeatherSenseWireless"
-          )
+    except:
+        print("--------")
+        print("MySQL Database WeatherSenseWireless Not Installed.")
+        print("Run this command:")
+        print("sudo mysql -u root -p < WeatherSenseWireless.sql")
+        print("SkyWeather2 Stopped")
+        print("--------")
+        sys.exit("SkyWeather2 Requirements Error Exit")
 
-except:
-    print("--------")
-    print("MySQL Database WeatherSenseWireless Not Installed.")
-    print("Run this command:")
-    print("sudo mysql -u root -p < WeatherSenseWireless.sql")
-    print("SkyWeather2 Stopped")
-    print("--------")
-    sys.exit("SkyWeather2 Requirements Error Exit")
+    # Check for updates having been applied
+    try:
 
+        con = mdb.connect(
+            "192.168.0.48",
+            "jachal",
+            config.MySQL_Password,
+            "WeatherSenseWireless"
+        )
+        cur = con.cursor()
+        query = "SELECT * FROM AS433MHZ"
+        cur.execute(query)
+    except:
+        # print(traceback.format_exc())
+        print("--------")
+        print("MySQL Database WeatherSenseWireless Updates Not Installed.")
+        print("Run this command:")
+        print("sudo mysql -u root -p WeatherSenseWireless < updateWeatherSenseWireless.sql")
+        print("SkyWeather2 Stopped")
+        print("--------")
+        sys.exit("SkyWeather2 Requirements Error Exit")
 
 # main program
-print ("")
+print("")
 
-print ("##########################################################")
-print ("SkyWeather2 Weather Station Version "+config.SWVERSION+" - SwitchDoc Labs")
-print ("")
-print ("Program Started at:"+ time.strftime("%Y-%m-%d %H:%M:%S"))
-print ("##########################################################")
-print ("")
+print("##########################################################")
+print("SkyWeather2 Weather Station Version " + config.SWVERSION + " - SwitchDoc Labs")
+print("")
+print("Program Started at:" + time.strftime("%Y-%m-%d %H:%M:%S"))
+print("##########################################################")
+print("")
 
 #
 if (config.SWDEBUG):
@@ -129,15 +151,15 @@ if (config.SWDEBUG):
 
 # kill all pigpio instances
 try:
-    cmd = [ 'killall', 'pigpiod' ]
+    cmd = ['killall', 'pigpiod']
     output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     print(output)
     time.sleep(5)
 except:
-    #print(traceback.format_exc())
+    # print(traceback.format_exc())
     pass
 
-cmd = [ '/usr/bin/pigpiod' ]
+cmd = ['/usr/bin/pigpiod']
 output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 print(output)
 import DustSensor
@@ -150,19 +172,16 @@ import DustSensor
 
 try:
 
-        DustSensor.powerOnDustSensor()
-        time.sleep(3)
-        myData = DustSensor.get_data()
-        #print ("data=",myData)
+    DustSensor.powerOnDustSensor()
+    time.sleep(3)
+    myData = DustSensor.get_data()
+    # print ("data=",myData)
 
-        config.DustSensor_Present = True
+    config.DustSensor_Present = True
 
 except:
 
-        config.DustSensor_Present = False
-
-
-
+    config.DustSensor_Present = False
 
 ################
 # BMP280 Setup 
@@ -173,95 +192,91 @@ try:
 except ImportError:
     from smbus import SMBus
 
-
 # Initialise the BMP280
 bus = SMBus(1)
 
 try:
-        bmp280 = BMP280(i2c_dev=bus, i2c_addr=0x77)
-        state.BarometricTemperature = round(bmp280.get_temperature(), 2)
- 
-        config.BMP280_Present = True
-except:
-        if (config.SWDEBUG):
-            pass
-            #print(traceback.format_exc())
+    bmp280 = BMP280(i2c_dev=bus, i2c_addr=0x77)
+    state.BarometricTemperature = round(bmp280.get_temperature(), 2)
 
-        config.BMP280_Present = False
+    config.BMP280_Present = True
+except:
+    if (config.SWDEBUG):
+        pass
+        # print(traceback.format_exc())
+
+    config.BMP280_Present = False
 
 ################
 # SkyCamera Setup 
 ################
 
 
-#Establish WeatherSTEMHash
+# Establish WeatherSTEMHash
 if (config.USEWEATHERSTEM == True):
     state.WeatherSTEMHash = SkyCamera.SkyWeatherKeyGeneration(config.STATIONKEY)
 
-#Detect Camera WeatherSTEMHash
+# Detect Camera WeatherSTEMHash
 try:
 
     with picamera.PiCamera() as cam:
         if (config.SWDEBUG):
-            print("Pi Camera Revision",cam.revision)
+            print("Pi Camera Revision", cam.revision)
         cam.close()
     config.Camera_Present = True
 except:
     config.Camera_Present = False
 
-
 # display device present variables
 
 
 print("----------------------")
-print(util.returnStatusLine("BMP280",config.BMP280_Present))
-print(util.returnStatusLine("SkyCam",config.Camera_Present))
-print(util.returnStatusLine("OLED",config.OLED_Present))
-print(util.returnStatusLine("SunAirPlus/SunControl",config.SunAirPlus_Present))
-print(util.returnStatusLine("SolarMAX",config.SolarMAX_Present))
-print(util.returnStatusLine("DustSensor",config.DustSensor_Present))
+print(util.returnStatusLine("BMP280", config.BMP280_Present))
+print(util.returnStatusLine("SkyCam", config.Camera_Present))
+print(util.returnStatusLine("OLED", config.OLED_Present))
+print(util.returnStatusLine("SunAirPlus/SunControl", config.SunAirPlus_Present))
+print(util.returnStatusLine("SolarMAX", config.SolarMAX_Present))
+print(util.returnStatusLine("DustSensor", config.DustSensor_Present))
 print()
-print(util.returnStatusEnable("UseBlynk",config.USEBLYNK))
-print(util.returnStatusEnable("UseWSLIGHTNING",config.USEWSLIGHTNING))
-print(util.returnStatusEnable("UseWSAQI",config.USEWSAQI))
-print(util.returnStatusEnable("UseWSSKYCAM",config.USEWSSKYCAM))
-print(util.returnStatusEnable("UseMySQL",config.enable_MySQL_Logging))
-print(util.returnStatusEnable("UseMQTT",config.MQTT_Enable))
-print(util.returnStatusLine("Check WLAN",config.enable_WLAN_Detection))
-print(util.returnStatusLine("WeatherUnderground",config.WeatherUnderground_Present))
-print(util.returnStatusLine("UseWeatherStem",config.USEWEATHERSTEM))
+print(util.returnStatusEnable("UseBlynk", config.USEBLYNK))
+print(util.returnStatusEnable("UseWSLIGHTNING", config.USEWSLIGHTNING))
+print(util.returnStatusEnable("UseWSAQI", config.USEWSAQI))
+print(util.returnStatusEnable("UseWSSKYCAM", config.USEWSSKYCAM))
+print(util.returnStatusEnable("UseMySQL", config.enable_MySQL_Logging))
+print(util.returnStatusEnable("UseMQTT", config.MQTT_Enable))
+print(util.returnStatusLine("Check WLAN", config.enable_WLAN_Detection))
+print(util.returnStatusLine("WeatherUnderground", config.WeatherUnderground_Present))
+print(util.returnStatusLine("UseWeatherStem", config.USEWEATHERSTEM))
 
 print("----------------------")
 
 # startup
 
 
-pclogging.systemlog(config.INFO,"SkyWeather2 Startup Version "+config.SWVERSION )
+pclogging.systemlog(config.INFO, "SkyWeather2 Startup Version " + config.SWVERSION)
 
 if (config.USEBLYNK):
-     updateBlynk.blynkEventUpdate("SW Startup Version "+config.SWVERSION)
-     updateBlynk.blynkTerminalUpdate("SW Startup Version "+config.SWVERSION) 
+    updateBlynk.blynkEventUpdate("SW Startup Version " + config.SWVERSION)
+    updateBlynk.blynkTerminalUpdate("SW Startup Version " + config.SWVERSION)
 
-subjectText = "The "+ config.STATIONKEY + " SkyWeather2 Raspberry Pi has #rebooted."
-ipAddress = subprocess.check_output(['hostname',  '-I'])
-bodyText = "SkyWeather2 Version "+config.SWVERSION+ " Startup \n"+ipAddress.decode()+"\n"
+subjectText = "The " + config.STATIONKEY + " SkyWeather2 Raspberry Pi has #rebooted."
+ipAddress = subprocess.check_output(['hostname', '-I'])
+bodyText = "SkyWeather2 Version " + config.SWVERSION + " Startup \n" + ipAddress.decode() + "\n"
 if (config.SunAirPlus_Present):
-	sampleSunAirPlus()
-	bodyText = bodyText + "\n" + "BV=%0.2fV/BC=%0.2fmA/SV=%0.2fV/SC=%0.2fmA" % (batteryVoltage, batteryCurrent, solarVoltage, solarCurrent)
+    sampleSunAirPlus()
+    bodyText = bodyText + "\n" + "BV=%0.2fV/BC=%0.2fmA/SV=%0.2fV/SC=%0.2fmA" % (
+    batteryVoltage, batteryCurrent, solarVoltage, solarCurrent)
 
-sendemail.sendEmail("test", bodyText, subjectText ,config.notifyAddress,  config.fromAddress, "");
-
+sendemail.sendEmail("test", bodyText, subjectText, config.notifyAddress, config.fromAddress, "");
 
 if (config.USEBLYNK):
-     updateBlynk.blynkInit()
-
+    updateBlynk.blynkInit()
 
 import paho.mqtt.client as mqtt
 
-
 # set up MQTT
 if (config.MQTT_Enable):
-    state.mqtt_client = mqtt.Client(client_id="SkyWeather2") 
+    state.mqtt_client = mqtt.Client(client_id="SkyWeather2")
     state.mqtt_client.connect(config.MQTT_Server_URL, port=config.MQTT_Port_Number)
 
 import publishMQTT
@@ -286,7 +301,7 @@ scheduler.add_job(tasks.tick, 'interval', seconds=60)
 scheduler.add_job(wirelessSensors.readSensors)  # run in background
 
 # read wired sensor package
-scheduler.add_job(wiredSensors.readWiredSensors, 'interval', args=[bmp280, hdc1080], seconds = 30) 
+scheduler.add_job(wiredSensors.readWiredSensors, 'interval', args=[bmp280, hdc1080], seconds=30)
 
 if (config.SWDEBUG):
     # print state
@@ -297,32 +312,29 @@ if (config.SWDEBUG):
 #
 # if (config.MQTT_Enable):
 #     scheduler.add_job(publishMQTT.publish, 'interval', seconds=config.MQTT_Send_Seconds)
-        
-scheduler.add_job(watchDog.patTheDog, 'interval', seconds=20)   # reset the WatchDog Timer
 
+scheduler.add_job(watchDog.patTheDog, 'interval', seconds=20)  # reset the WatchDog Timer
 
 # every 5 days at 00:04, reboot
-scheduler.add_job(rebootPi, 'cron', day='5-30/5', hour=0, minute=4, args=["5 day Reboot"]) 
-	
-#check for Barometric Trend (every 15 minutes)
-scheduler.add_job(util.barometricTrend, 'interval', seconds=15*60)
+scheduler.add_job(rebootPi, 'cron', day='5-30/5', hour=0, minute=4, args=["5 day Reboot"])
+
+# check for Barometric Trend (every 15 minutes)
+scheduler.add_job(util.barometricTrend, 'interval', seconds=15 * 60)
 
 if (config.DustSensor_Present):
-    #DustSensor.read_AQI() # get current value
-    scheduler.add_job(DustSensor.read_AQI, 'interval', seconds=60*12)
-   
+    # DustSensor.read_AQI() # get current value
+    scheduler.add_job(DustSensor.read_AQI, 'interval', seconds=60 * 12)
+
 if (config.USEWSAQI):
-    wirelessSensors.WSread_AQI() # get current value
-    scheduler.add_job(wirelessSensors.WSread_AQI, 'interval', seconds=60*20)
-   
+    wirelessSensors.WSread_AQI()  # get current value
+    scheduler.add_job(wirelessSensors.WSread_AQI, 'interval', seconds=60 * 20)
 
 # weather sensors
 
-#scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=3*60)
-scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=15*60)
+# scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=3*60)
+scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=15 * 60)
 
-scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15*60)
-
+scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15 * 60)
 
 # sky camera
 if (config.USEWEATHERSTEM):
@@ -344,17 +356,15 @@ if (config.USEWEATHERSTEM):
     publishMQTT.publish(topic, json.dumps(payload))
 
     if (config.Camera_Present):
-        scheduler.add_job(SkyCamera.takeSkyPicture, 'interval', seconds=config.INTERVAL_CAM_PICS__SECONDS) 
+        scheduler.add_job(SkyCamera.takeSkyPicture, 'interval', seconds=config.INTERVAL_CAM_PICS__SECONDS)
 
-
-# start scheduler
+    # start scheduler
 scheduler.start()
-print ("-----------------")
-print ("Scheduled Jobs")
-print ("-----------------")
+print("-----------------")
+print("Scheduled Jobs")
+print("-----------------")
 scheduler.print_jobs()
-print ("-----------------")
-
+print("-----------------")
 
 run_flag = True
 
@@ -371,6 +381,3 @@ try:
     scheduler.shutdown(wait=False)
 except Exception as e:
     print(e)
-
-
-

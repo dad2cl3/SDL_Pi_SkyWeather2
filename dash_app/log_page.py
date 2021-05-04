@@ -91,16 +91,16 @@ def convertLevelToName(level):
        return "UNKNOWN" 
 
 
-def fetchSystemLog():
+def fetchSystemLog(con):
 
         try:
                 #print("trying database")
-                con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
+                # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
                 cur = con.cursor()
                 query = "SELECT * FROM SystemLog ORDER BY ID DESC LIMIT 20" 
                 #print("query=", query)
                 cur.execute(query)
-                con.commit()
+                # con.commit()
                 records = cur.fetchall()
 
                 #print(records)
@@ -120,20 +120,20 @@ def fetchSystemLog():
         except mdb.Error as e:
                 traceback.print_exc()
                 print("Error %d: %s" % (e.args[0],e.args[1]))
-                con.rollback()
+                # con.rollback()
                 #sys.exit(1)
 
         finally:
                 cur.close()
-                con.close()
+                # con.close()
 
 
 
 
-def updateLogs(): 
+def updateLogs(con):
       layout = [] 
 
-      data = fetchSystemLog()
+      data = fetchSystemLog(con)
       fig = buildTableFig(data,"System Log")
       layout.append(dcc.Graph(id={"type": "LPdynamic", "index": "systemlog"},figure=fig))	
 
@@ -144,7 +144,7 @@ def updateLogs():
 ################
 
 
-def LogPage():
+def LogPage(con):
     Row1 = html.Div(
         [ 
             #dbc.Row(

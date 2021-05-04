@@ -48,41 +48,54 @@ class SDL_Pi_HM3301(object):
     def read_HM3301_data(self):
 
         (count, data) = self.pi.bb_i2c_zip(
-             self.SDA, [4,self.I2C_Address,2,7,1,0x81,3, 2,6,DATA_CNT,3,0   ])
+             self.SDA, [4, self.I2C_Address, 2, 7, 1, 0x81, 3, 2, 6, DATA_CNT, 3, 0])
 
-
+        print('===============')
+        print('HM3301 reading')
+        # print(data)
+        print(list(data))
+        print('===============')
         return list(data)
 
     def close(self):
         self.pi.bb_i2c_close(self.SDA)
         self.pi.stop()
 
-        
-
-            
     def checksum(self):
         sum = 0
         for i in range(DATA_CNT-1):
             sum += self.last_data[i]
         sum = sum & 0xff
+
+        print('')
+        print('')
+
         return (sum==self.last_data[28])
 
-   
     def parse_data(self, data):
 
-        self.PM_1_0_conctrt_std = data[4]<<8 | data[5]
-        self.PM_2_5_conctrt_std = data[6]<<8 | data[7]
-        self.PM_10_conctrt_std = data[8]<<8 | data[9]
+        self.PM_1_0_conctrt_std = data[4] << 8 | data[5]
+        self.PM_2_5_conctrt_std = data[6] << 8 | data[7]
+        self.PM_10_conctrt_std = data[8] << 8 | data[9]
         
-        self.PM_1_0_conctrt_atmosph = data[10]<<8 | data[11]          
-        self.PM_2_5_conctrt_atmosph = data[12]<<8 | data[13]
-        self.PM_10_conctrt_atmosph  = data[14]<<8 | data[15]
+        self.PM_1_0_conctrt_atmosph = data[10] << 8 | data[11]
+        self.PM_2_5_conctrt_atmosph = data[12] << 8 | data[13]
+        self.PM_10_conctrt_atmosph  = data[14] << 8 | data[15]
 
     def get_data(self):
         data = self.read_HM3301_data()
         self.last_data = data
         self.parse_data(data)
-        return list( (self.PM_1_0_conctrt_std, self.PM_2_5_conctrt_std,  self.PM_10_conctrt_std,  self.PM_1_0_conctrt_atmosph, self.PM_2_5_conctrt_atmosph, self.PM_10_conctrt_atmosph))
+        return list(
+            (
+                self.PM_1_0_conctrt_std,
+                self.PM_2_5_conctrt_std,
+                self.PM_10_conctrt_std,
+                self.PM_1_0_conctrt_atmosph,
+                self.PM_2_5_conctrt_atmosph,
+                self.PM_10_conctrt_atmosph
+            )
+        )
 
     def print_data(self):
 
@@ -101,8 +114,6 @@ class SDL_Pi_HM3301(object):
         print(" ")
 
     def get_aqi(self):
-
-
         myaqi = aqi.to_aqi([
          (aqi.POLLUTANT_PM25, self.PM_2_5_conctrt_std),
          (aqi.POLLUTANT_PM10, self.PM_10_conctrt_std)

@@ -26,14 +26,14 @@ LLJSON["NoiseCount"]= "N/A"
 LLJSON["UnitID"]= "N/A"
 LLJSON["LastMessageID"]= "N/A"
 
-def updateLightningLines():
+def updateLightningLines(con):
 
-    con = mdb.connect(
-        "192.168.0.48",
-        "jachal",
-        config.MySQL_Password,
-        "WeatherSenseWireless"
-    )
+    # con = mdb.connect(
+    #     "192.168.0.48",
+    #     "jachal",
+    #     config.MySQL_Password,
+    #     "WeatherSenseWireless"
+    # )
 
     cur = con.cursor()
     # build the data array
@@ -120,13 +120,13 @@ def updateLightningLines():
         LLJSON["LastMessageID"]= "N/A"
 
 
-def build_graphLightning_figure():
-    con = mdb.connect(
-        "192.168.0.48",
-        "jachal",
-        config.MySQL_Password,
-        "WeatherSenseWireless"
-    )
+def build_graphLightning_figure(con):
+    # con = mdb.connect(
+    #     "192.168.0.48",
+    #     "jachal",
+    #     config.MySQL_Password,
+    #     "WeatherSenseWireless"
+    # )
 
     #last 7 days
     timeDelta = datetime.timedelta(days=7)
@@ -158,13 +158,13 @@ def build_graphLightning_figure():
 
     return figure
 
-def build_graph1_figure():
-    con = mdb.connect(
-        "192.168.0.48",
-        "jachal",
-        config.MySQL_Password,
-        "WeatherSenseWireless"
-    )
+def build_graph1_figure(con):
+    # con = mdb.connect(
+    #     "192.168.0.48",
+    #     "jachal",
+    #     config.MySQL_Password,
+    #     "WeatherSenseWireless"
+    # )
 
     #last 7 days
     timeDelta = datetime.timedelta(days=7)
@@ -192,13 +192,13 @@ def build_graph1_figure():
 
     return figure
 
-def build_graph2_figure():
-    con = mdb.connect(
-        "192.168.0.48",
-        "jachal",
-        config.MySQL_Password,
-        "WeatherSenseWireless"
-    )
+def build_graph2_figure(con):
+    # con = mdb.connect(
+    #     "192.168.0.48",
+    #     "jachal",
+    #     config.MySQL_Password,
+    #     "WeatherSenseWireless"
+    # )
 
     #last 7 days
     timeDelta = datetime.timedelta(days=7)
@@ -223,7 +223,7 @@ def build_graph2_figure():
     return figure
 
 
-def LightningPage():
+def LightningPage(con):
 
     maintextsize = "2.0em"
     subtextcolor = "green"
@@ -302,17 +302,17 @@ def LightningPage():
    
     dcc.Graph(
     id={'type' : 'Lightninggraph', 'index' : "1"},
-    figure = build_graphLightning_figure(),
+    figure = build_graphLightning_figure(con),
     ),
 
     dcc.Graph(
     id={'type' : 'Lightninggraph', 'index' : "2"},
-    figure = build_graph1_figure(),
+    figure = build_graph1_figure(con),
     ),
 
     dcc.Graph(
     id={'type' : 'Lightninggraph', 'index' : "3"},
-    figure = build_graph2_figure(),
+    figure = build_graph2_figure(con),
     ) ,
 
     ], className="container" )

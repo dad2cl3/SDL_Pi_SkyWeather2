@@ -28,6 +28,23 @@ import solarmax_page
 from non_impl import NotImplPage
 
 from navbar import Navbar, Logo
+import MySQLdb as mdb
+import config
+
+
+def get_db_conn(schema):
+    try:
+        con = mdb.connect(
+            '192.168.0.48',
+            'jachal',
+            config.MySQL_Password,
+            schema
+        )
+        return con
+    except Exception as e:
+        print(e)
+        return
+
 
 UpdateCWJSONLock = threading.Lock()
 SGSDASHSOFTWAREVERSION = "006"
@@ -110,28 +127,30 @@ def display_page(pathname):
     #    raise PreventUpdate	
     previousPathname = pathname
 
-    myLayout = NotImplPage()
+    # myLayout = NotImplPage()
+    myLayout = status_page.StatusPage()
+
     myLayout2 = ""
     if pathname == '/status_page':
         myLayout = status_page.StatusPage()
         myLayout2 = ""
     if pathname == '/log_page':
-        myLayout = log_page.LogPage()
+        myLayout = log_page.LogPage(get_db_conn('SkyWeather2'))
         myLayout2 = ""
     if pathname == '/weather_page':
-        myLayout = weather_page.WeatherPage()
+        myLayout = weather_page.WeatherPage(get_db_conn('SkyWeather2'))
         myLayout2 = ""
     if pathname == '/indoorth':
-        myLayout = indoorth.IndoorTHPage()
+        myLayout = indoorth.IndoorTHPage(get_db_conn('SkyWeather2'))
         myLayout2 = ""
     if pathname == '/aqi_page':
         myLayout = aqi_page.AQIPage()
         myLayout2 = ""
     if pathname == '/lightning_page':
-        myLayout = lightning_page.LightningPage()
+        myLayout = lightning_page.LightningPage(get_db_conn('WeatherSenseWireless'))
         myLayout2 = ""
     if pathname == '/solarmax_page':
-        myLayout = solarmax_page.SolarMAXPage()
+        myLayout = solarmax_page.SolarMAXPage(get_db_conn('WeatherSenseWireless'))
         myLayout2 = ""
 
     # print("myLayout= ",myLayout)
@@ -158,16 +177,16 @@ def logpageupdate(n_intervals, id, value):
         # print(">log_page table Update started",id['index'])
         # print("LG-n_intervals=", n_intervals)
         if (id['index'] == "systemlog"):
-            data = log_page.fetchSystemLog()
+            data = log_page.fetchSystemLog(get_db_conn('SkyWeather2'))
             fig = log_page.buildTableFig(data, "System Log")
 
         if (id['index'] == "valvelog"):
-            data = log_page.fetchValveLog()
+            data = log_page.fetchValveLog(get_db_conn('SkyWeather2'))
             fig = log_page.buildTableFig(data, "Valve Log")
             return fig
 
         if (id['index'] == "sensorlog"):
-            data = log_page.fetchSensorLog()
+            data = log_page.fetchSensorLog(get_db_conn('SkyWeather2'))
             fig = log_page.buildTableFig(data, "Sensor Log")
 
         # print("<log_page table Update complete",id['index'])
@@ -179,6 +198,15 @@ def logpageupdate(n_intervals, id, value):
 ##################
 # Status Page
 ##################
+@app.callback(Output({'type': 'VSPdynamic', 'index': MATCH}, 'color'),
+              [Input('main-interval-component', 'n_intervals'),
+               Input({'type': 'VSPdynamic', 'index': MATCH}, 'id')],
+              [State({'type': 'VSPdynamic', 'index': MATCH}, 'color')]
+              )
+def update_indicators(n_intervals, id, color):
+    if (True):  # 1 minutes -10 second timer
+        return status_page.returnPiThrottledColor(id)
+
 
 @app.callback(
     [
@@ -190,11 +218,15 @@ def logpageupdate(n_intervals, id, value):
     [State({'type': 'SPGdynamic', 'GaugeType': MATCH}, 'value')]
 )
 def update_gauges(n_intervals, id, value):
-    if (True):  # 1 minutes -10 second timer
+
+
+    if True: # 1 minutes -10 second timer
         # if ((n_intervals % (1*6)) == 0): # 1 minutes -10 second timer
 
         # print(">status_page Gauge Update started",id['GaugeType'])
         newValue = status_page.updateGauges(id)
+        myName = ''
+
         if (id['GaugeType'] == 'pi-disk'):
             myName = "Pi SD Card Free"
         if (id['GaugeType'] == 'pi-memory'):
@@ -202,7 +234,8 @@ def update_gauges(n_intervals, id, value):
         if (id['GaugeType'] == 'pi-loading'):
             myName = "Pi CPU Loading"
             # print("<status_page Gauge Update complete",id['GaugeType'])
-
+        if id['GaugeType'] == 'pi-temp':
+            myName = 'Pi CPU Temperature'
         return newValue, myName
     else:
         raise PreventUpdate
@@ -301,11 +334,16 @@ def updateWeatherUpdate(n_intervals, id, value):
         # print("updateWeatherUpdate n_intervals =", n_intervals, id['index'])
         if (id['index'] == "StringTime"):
             UpdateCWJSONLock.acquire()
-            weather_page.CWJSON = weather_page.generateCurrentWeatherJSON()
+            weather_page.CWJSON = weather_page.generateCurrentWeatherJSON(get_db_conn('SkyWeather2'))
             UpdateCWJSONLock.release()
             value = str(weather_page.CWJSON[id['index']]) + " " + weather_page.CWJSON[id['index'] + 'Units']
             value = "Weather Updated at:" + value
 
+            return [value]
+        elif id['index'] == 'WindDirection':
+            wind_dir = weather_page.CWJSON[id['index']]
+            wind_dir_str = weather_page.calc_wind_quadrant(wind_dir)
+            value = str(wind_dir) + weather_page.CWJSON[id['index'] + 'Units'] + " " + wind_dir_str
             return [value]
 
         UpdateCWJSONLock.acquire()
@@ -333,8 +371,8 @@ def updateWeatherRosePage(n_intervals, id, value):
     if ((n_intervals % (15 * 6)) == 0):  # 15 minutes -10 second timer
         # print("--->>>updateCompassRose", datetime.datetime.now(), n_intervals)
         timeDelta = datetime.timedelta(days=7)
-        data = weather_page.fetchWindData(timeDelta)
-        fig = weather_page.figCompassRose(data)
+        data = weather_page.fetchWindData(timeDelta, get_db_conn('SkyWeather2'))
+        fig = weather_page.figCompassRose(data, get_db_conn('SkyWeather2'))
 
     else:
         raise PreventUpdate
@@ -358,11 +396,11 @@ def updateWeatherGraphPage(n_intervals, id, value):
         # print("--->>>updateWeatherGraphs", datetime.datetime.now(), n_intervals, id)
         # print("--->>>updateWeatherGraphs:", id['index'])
         if (id['index'] == 'graph-oth'):
-            fig = weather_page.buildOutdoorTemperature_Humidity_Graph_Figure()
+            fig = weather_page.buildOutdoorTemperature_Humidity_Graph_Figure(get_db_conn('SkyWeather2'))
         if (id['index'] == 'graph-suv'):
-            fig = weather_page.buildSunlightUVIndexGraphFigure()
+            fig = weather_page.buildSunlightUVIndexGraphFigure(get_db_conn('SkyWeather2'))
         if (id['index'] == 'graph-aqi'):
-            fig = weather_page.buildAQIGraphFigure()
+            fig = weather_page.buildAQIGraphFigure(get_db_conn('SkyWeather2'))
             # print("aqi-fig=",fig)
 
     else:
@@ -388,12 +426,12 @@ def updateIndoorTHUpdate(n_intervals, id, value):
         # print("updateIndoorTH  n_intervals =", n_intervals, id['index'])
         if (id['index'] == 'temperature'):
             timeDelta = datetime.timedelta(days=7)
-            data = indoorth.generateTHData(timeDelta)
+            data = indoorth.generateTHData(timeDelta, get_db_conn('SkyWeather2'))
             fig = indoorth.buildTemperatureGraph(data)
             return [fig]
         if (id['index'] == 'humidity'):
             timeDelta = datetime.timedelta(days=7)
-            data = indoorth.generateTHData(timeDelta)
+            data = indoorth.generateTHData(timeDelta, get_db_conn('SkyWeather2'))
             fig = indoorth.buildHumidityGraph(data)
             return [fig]
 
@@ -451,7 +489,7 @@ def updateLightningUpdate(n_intervals, id, value):
             now = datetime.datetime.now()
             nowString = now.strftime('%Y-%m-%d %H:%M:%S')
             value = "Lightning Updated at:" + nowString
-            lightning_page.updateLightningLines()
+            lightning_page.updateLightningLines(get_db_conn('WeatherSenseWireless'))
 
             return [value]
 
@@ -504,10 +542,10 @@ def update_metrics(n_intervals, id, value):
     # build figures
     if (myIndex == '2'):
         print("SolarMAX Solar Currents")
-        figure = solarmax_page.build_graph1_figure()
+        figure = solarmax_page.build_graph1_figure(get_db_conn('WeatherSenseWireless'))
     if (myIndex == '3'):
         print("SolarMAX Solar Voltages")
-        figure = solarmax_page.build_graph2_figure()
+        figure = solarmax_page.build_graph2_figure(get_db_conn('WeatherSenseWireless'))
 
     return [figure]
 

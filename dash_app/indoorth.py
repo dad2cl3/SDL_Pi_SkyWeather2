@@ -53,10 +53,10 @@ def TUnits():
 # Build Graphs
 ################
 
-def generateTHData(timeDelta):
+def generateTHData(timeDelta, con):
     try:
         # print("trying database")
-        con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
+        # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
         cur = con.cursor()
         now = datetime.datetime.now()
         before = now - timeDelta
@@ -65,7 +65,7 @@ def generateTHData(timeDelta):
             before)
         print("query=", query)
         cur.execute(query)
-        con.commit()
+        # con.commit()
         records = cur.fetchall()
         # print ("Query records=", records)
         print("Query Count = ", len(records))
@@ -73,12 +73,12 @@ def generateTHData(timeDelta):
     except mdb.Error as e:
         traceback.print_exc()
         print("Error %d: %s" % (e.args[0], e.args[1]))
-        con.rollback()
+        # con.rollback()
         # sys.exit(1)
 
     finally:
         cur.close()
-        con.close()
+        # con.close()
 
 
 def buildTemperatureGraph(data):
@@ -199,9 +199,9 @@ def buildHumidityGraph(data):
     return fig
 
 
-def buildTGraph():
+def buildTGraph(con):
     timeDelta = datetime.timedelta(days=7)
-    data = generateTHData(timeDelta)
+    data = generateTHData(timeDelta, con)
 
     fig1 = buildTemperatureGraph(data)
 
@@ -215,9 +215,9 @@ def buildTGraph():
     return graph
 
 
-def buildHGraph():
+def buildHGraph(con):
     timeDelta = datetime.timedelta(days=7)
-    data = generateTHData(timeDelta)
+    data = generateTHData(timeDelta, con)
 
     fig2 = buildHumidityGraph(data)
 
@@ -236,7 +236,7 @@ def buildHGraph():
 ################
 
 
-def IndoorTHPage():
+def IndoorTHPage(con):
     start = datetime.datetime.now()
 
     Row1 = html.Div(
@@ -247,8 +247,8 @@ def IndoorTHPage():
 
                     dbc.Col(
                         [
-                            buildTGraph(),
-                            buildHGraph(),
+                            buildTGraph(con),
+                            buildHGraph(con),
                         ],
                         width=12,
                     )

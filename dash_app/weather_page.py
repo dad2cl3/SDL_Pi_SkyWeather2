@@ -30,6 +30,7 @@ readJSON.readJSON("../")
 
 import MySQLdb as mdb
 
+global CWJSON
 
 ################
 # Weather Status
@@ -125,6 +126,9 @@ def CBUnits(barometricpressure):
 
     if (English_Metric == False):  # english units
         barometricpressure = barometricpressure * .2953
+    else:
+        barometricpressure = barometricpressure * 10.0
+
     return barometricpressure
 
 
@@ -190,9 +194,9 @@ def getWSAQIs():
     return 0.0, 0.0
 
 
-def generateCurrentWeatherJSON():
+def generateCurrentWeatherJSON(con):
     try:
-        con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
+        # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
         cur = con.cursor()
         query = "SELECT * FROM `WeatherData` ORDER BY id DESC LIMIT 1"
         # print("query=", query)
@@ -233,24 +237,39 @@ def generateCurrentWeatherJSON():
         # now calculate rain
 
         # calendar day rain
-        query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE DATE(TimeStamp) = CURDATE() ORDER by id ASC"
+        query = "SELECT (MAX(TotalRain) - MIN(TotalRain)) total_rain FROM WeatherData WHERE DATE(TimeStamp) = CURDATE() ORDER by id ASC"
+        print(query) # debug
         cur.execute(query)
         rainspanrecords = cur.fetchall()
-        if (len(rainspanrecords) > 0):
-            rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+        if len(rainspanrecords) > 0:
+            # rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+            rainspan = rainspanrecords[0][0]
         else:
             rainspan = 0
         CWJSON["CalendarDayRain"] = round(rainspan, 2)
 
         # Calendar Month
-        query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE MONTH(TimeStamp) = MONTH(NOW()) AND YEAR(TimeStamp) = YEAR(NOW())"
-        cur.execute(query)
-        rainspanrecords = cur.fetchall()
+        # query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE MONTH(TimeStamp) = MONTH(NOW()) AND YEAR(TimeStamp) = YEAR(NOW())"
+        # print(query) # debug
+        # cur.execute(query)
+        # rainspanrecords = cur.fetchall()
+        # if (len(rainspanrecords) > 0):
+            # rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+        # else:
+            # rainspan = 0
+        # CWJSON["CalendarMonthRain"] = round(rainspan, 2)
 
-        if (len(rainspanrecords) > 0):
-            rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+        query = 'SELECT (MAX(TotalRain) - MIN(TotalRain)) total_rain FROM WeatherData WHERE MONTH(TimeStamp) = MONTH(NOW()) AND YEAR(TimeStamp) = YEAR(NOW())'
+        cur.execute(query)
+        # print(cur.fetchall()) # debug
+        data = cur.fetchall()
+
+        if len(data) > 0:
+            rainspan = data[0][0]
+            print('Current calendar month rainfall: {0}'.format(rainspan))
         else:
             rainspan = 0
+
         CWJSON["CalendarMonthRain"] = round(rainspan, 2)
 
         # last 30 days
@@ -258,14 +277,16 @@ def generateCurrentWeatherJSON():
         now = datetime.datetime.now()
         before = now - timeDelta
         before = before.strftime('%Y-%m-%d %H:%M:%S')
-        query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (
-            before)
-
+        # query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (before)
+        query = "SELECT (MAX(TotalRain) - MIN(TotalRain)) total_rain FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (before)
+        print(query) # debug
         cur.execute(query)
-        rainspanrecords = cur.fetchall()
+        # rainspanrecords = cur.fetchall()
+        data = cur.fetchall()
 
-        if (len(rainspanrecords) > 0):
-            rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+        if len(data) > 0:
+            # rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+            rainspan = data[0][0]
         else:
             rainspan = 0
         CWJSON["30DayRain"] = round(rainspan, 2)
@@ -275,14 +296,15 @@ def generateCurrentWeatherJSON():
         now = datetime.datetime.now()
         before = now - timeDelta
         before = before.strftime('%Y-%m-%d %H:%M:%S')
-        query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (
-            before)
-
+        query = "SELECT (MAX(TotalRain) - MIN(TotalRain)) total_rain FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (before)
+        print(query) # debug
         cur.execute(query)
-        rainspanrecords = cur.fetchall()
+        # rainspanrecords = cur.fetchall()
+        data = cur.fetchall()
 
-        if (len(rainspanrecords) > 0):
-            rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+        if len(data) > 0:
+            # rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+            rainspan = data[0][0]
         else:
             rainspan = 0
         CWJSON["24HourRain"] = round(rainspan, 2)
@@ -292,19 +314,21 @@ def generateCurrentWeatherJSON():
         now = datetime.datetime.now()
         before = now - timeDelta
         before = before.strftime('%Y-%m-%d %H:%M:%S')
-        query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (
+        query = "SELECT (MAX(TotalRain) - MIN(TotalRain)) total_rain FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (
             before)
-
+        print(query) # debug
         cur.execute(query)
-        rainspanrecords = cur.fetchall()
+        # rainspanrecords = cur.fetchall()
+        data = cur.fetchall()
 
-        if (len(rainspanrecords) > 0):
-            rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+        if len(data) > 0:
+            # rainspan = rainspanrecords[len(rainspanrecords) - 1][1] - rainspanrecords[0][1]
+            rainspan = data[0][0]
         else:
             rainspan = 0
         CWJSON["7DaysRain"] = round(rainspan, 2)
 
-        con.commit()
+        # con.commit()
 
         # convert to appropiate units and add units
         # set units
@@ -373,7 +397,7 @@ def generateCurrentWeatherJSON():
         CWJSON["SunlightUVIndexUnits"] = ""
         CWJSON["AQIUnits"] = ""
         CWJSON["AQI24AverageUnits"] = ""
-        CWJSON["WindDirectionUnits"] = "º"
+        CWJSON["WindDirectionUnits"] = "°"
 
         # adjust for WS AQI
         if (config.USEWSAQI):
@@ -381,22 +405,21 @@ def generateCurrentWeatherJSON():
             CWJSON["AQI24Average"] = myAQI[1]
             CWJSON["AQI"] = myAQI[0]
 
-        return CWJSON
     except:
         traceback.print_exc()
         # sys.exit(1)
-
     finally:
         cur.close()
-        con.close()
-    print("done generating CWJSON=", CWJSON)
+        # con.close()
+        print("done generating CWJSON=", CWJSON)
+
     return CWJSON
 
 
-def fetchWindData(timeDelta):
+def fetchWindData(timeDelta, con):
     try:
         # print("trying database")
-        con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
+        # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
         cur = con.cursor()
         now = datetime.datetime.now()
         before = now - timeDelta
@@ -405,7 +428,7 @@ def fetchWindData(timeDelta):
             before)
         # print("query=", query)
         cur.execute(query)
-        con.commit()
+        # con.commit()
         records = cur.fetchall()
         # print ("Query records=", records)
         print("number of Records =", len(records))
@@ -437,12 +460,12 @@ def fetchWindData(timeDelta):
     except mdb.Error as e:
         traceback.print_exc()
         print("Error %d: %s" % (e.args[0], e.args[1]))
-        con.rollback()
+        # con.rollback()
         # sys.exit(1)
 
     finally:
         cur.close()
-        con.close()
+        # con.close()
 
     return df
 
@@ -515,12 +538,12 @@ df = [77.5, 72.5, 70.0, 45.0, 22.5, 42.5, 40.0, 62.5]
     return fig
 
 
-def buildCompassRose():
+def buildCompassRose(con):
     layout = []
     myLabelLayout = []
 
     timeDelta = datetime.timedelta(days=7)
-    data = fetchWindData(timeDelta)
+    data = fetchWindData(timeDelta, con)
     fig = figCompassRose(data)
     layout.append(dcc.Graph(id={"type": "WPRdynamic", "index": "compassrose"}, figure=fig))
     return layout
@@ -530,10 +553,10 @@ def buildCompassRose():
 #### OTH Graph ####
 ###################
 
-def fetchOTH(timeDelta):
+def fetchOTH(timeDelta, con):
     try:
         # print("trying database")
-        con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
+        # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
         cur = con.cursor()
         now = datetime.datetime.now()
         before = now - timeDelta
@@ -542,24 +565,24 @@ def fetchOTH(timeDelta):
             before)
         # print("query=", query)
         cur.execute(query)
-        con.commit()
+        # con.commit()
         records = cur.fetchall()
         # print ("Query records=", records)
         return records
     except mdb.Error as e:
         traceback.print_exc()
         print("Error %d: %s" % (e.args[0], e.args[1]))
-        con.rollback()
+        # con.rollback()
         # sys.exit(1)
 
     finally:
         cur.close()
-        con.close()
+        # con.close()
 
 
-def buildOutdoorTemperature_Humidity_Graph_Figure():
+def buildOutdoorTemperature_Humidity_Graph_Figure(con):
     timeDelta = datetime.timedelta(days=7)
-    records = fetchOTH(timeDelta)
+    records = fetchOTH(timeDelta, con)
 
     Time = []
     Temperature = []
@@ -614,6 +637,7 @@ def buildOutdoorTemperature_Humidity_Graph_Figure():
 
     # Add figure title
     fig.update_layout(
+        # title_text="Outdoor Temperature and Humidity ", height=400, x=0.5
         title_text="Outdoor Temperature and Humidity ", height=400
     )
 
@@ -623,15 +647,15 @@ def buildOutdoorTemperature_Humidity_Graph_Figure():
     minTemp = min(Temperature) * 0.9
     maxTemp = max(Temperature) * 1.10
     # Set y-axes titles
-    fig.update_yaxes(title_text="<b>Temperature (" + units + ")</b>", range=(minTemp, maxTemp), secondary_y=False,
+    fig.update_yaxes(title_text="<b>Temperature (°" + units + ")</b>", range=(minTemp, maxTemp), secondary_y=False,
                      side='left')
     fig.update_yaxes(title_text="<b>Humidity (%)</b>", range=(0, 100), secondary_y=True, side='right')
 
     return fig
 
 
-def buildOutdoorTemperature_Humidity_Graph():
-    fig = buildOutdoorTemperature_Humidity_Graph_Figure()
+def buildOutdoorTemperature_Humidity_Graph(con):
+    fig = buildOutdoorTemperature_Humidity_Graph_Figure(con)
 
     graph = dcc.Graph(
         id={'type': 'WPGdynamic', 'index': 'graph-oth'},
@@ -645,11 +669,11 @@ def buildOutdoorTemperature_Humidity_Graph():
 ####  AQI Graph ####
 ###################
 
-def fetchAQI(timeDelta):
+def fetchAQI(timeDelta, con):
     if (config.USEWSAQI):
         try:
             # print("trying database")
-            con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'WeatherSenseWireless');
+            # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'WeatherSenseWireless');
             cur = con.cursor()
             now = datetime.datetime.now()
             before = now - timeDelta
@@ -658,24 +682,24 @@ def fetchAQI(timeDelta):
                 before)
             # print("query=", query)
             cur.execute(query)
-            con.commit()
+            # con.commit()
             records = cur.fetchall()
             # print ("Query records=", records)
             return records
         except mdb.Error as e:
             traceback.print_exc()
             print("Error %d: %s" % (e.args[0], e.args[1]))
-            con.rollback()
+            # con.rollback()
             # sys.exit(1)
 
         finally:
             cur.close()
-            con.close()
+            # con.close()
 
     else:
         try:
             # print("trying database")
-            con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
+            # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
             cur = con.cursor()
             now = datetime.datetime.now()
             before = now - timeDelta
@@ -684,24 +708,24 @@ def fetchAQI(timeDelta):
                 before)
             # print("query=", query)
             cur.execute(query)
-            con.commit()
+            # con.commit()
             records = cur.fetchall()
             # print ("Query records=", records)
             return records
         except mdb.Error as e:
             traceback.print_exc()
             print("Error %d: %s" % (e.args[0], e.args[1]))
-            con.rollback()
+            # con.rollback()
             # sys.exit(1)
 
         finally:
             cur.close()
-            con.close()
+            # con.close()
 
 
-def buildAQIGraphFigure():
+def buildAQIGraphFigure(con):
     timeDelta = datetime.timedelta(days=7)
-    records = fetchAQI(timeDelta)
+    records = fetchAQI(timeDelta, con)
 
     Time = []
     AQI = []
@@ -764,8 +788,8 @@ def buildAQIGraphFigure():
 
 ########################
 
-def buildAQI_Graph():
-    fig = buildAQIGraphFigure()
+def buildAQI_Graph(con):
+    fig = buildAQIGraphFigure(con)
 
     graph = dcc.Graph(
         id={'type': 'WPGdynamic', 'index': 'graph-aqi'},
@@ -776,10 +800,10 @@ def buildAQI_Graph():
 
 
 ################################
-def fetchSUV(timeDelta):
+def fetchSUV(timeDelta, con):
     try:
         # print("trying database")
-        con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
+        # con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
         cur = con.cursor()
         now = datetime.datetime.now()
         before = now - timeDelta
@@ -788,28 +812,28 @@ def fetchSUV(timeDelta):
             before)
         # print("query=", query)
         cur.execute(query)
-        con.commit()
+        # con.commit()
         records = cur.fetchall()
         # print ("Query records=", records)
         return records
     except mdb.Error as e:
         traceback.print_exc()
         print("Error %d: %s" % (e.args[0], e.args[1]))
-        con.rollback()
+        # con.rollback()
         # sys.exit(1)
 
     finally:
         cur.close()
-        con.close()
+        # con.close()
 
 
-def buildSunlightUVIndexGraphFigure():
+def buildSunlightUVIndexGraphFigure(con):
     Time = []
     Sunlight = []
     UVIndex = []
 
     timeDelta = datetime.timedelta(days=7)
-    records = fetchSUV(timeDelta)
+    records = fetchSUV(timeDelta, con)
 
     for record in records:
         Time.append(record[2])
@@ -863,8 +887,8 @@ def buildSunlightUVIndexGraphFigure():
     return fig
 
 
-def buildSunlight_UVIndex_Graph():
-    fig = buildSunlightUVIndexGraphFigure()
+def buildSunlight_UVIndex_Graph(con):
+    fig = buildSunlightUVIndexGraphFigure(con)
 
     graph = dcc.Graph(
         id={'type': 'WPGdynamic', 'index': 'graph-suv'},
@@ -883,8 +907,9 @@ def buildSunlight_UVIndex_Graph():
 # Page Functions
 ################
 
-def WeatherPage():
-    global CWJSON
+def WeatherPage(con):
+
+    CWJSON = generateCurrentWeatherJSON(con)
     maintextsize = "2.0em"
     subtextcolor = "green"
     maintextcolor = "black"
@@ -973,7 +998,7 @@ def WeatherPage():
                     ),
                         width=3,
                     ),
-                    dbc.Col(html.Div(buildCompassRose())),
+                    dbc.Col(html.Div(buildCompassRose(con))),
 
                 ],
             ),
@@ -1082,9 +1107,9 @@ def WeatherPage():
                 [
                     dbc.Col(
                         [
-                            buildOutdoorTemperature_Humidity_Graph(),
-                            buildSunlight_UVIndex_Graph(),
-                            buildAQI_Graph(),
+                            buildOutdoorTemperature_Humidity_Graph(con),
+                            buildSunlight_UVIndex_Graph(con),
+                            buildAQI_Graph(con),
                         ],
                         width=12,
                     )
@@ -1104,4 +1129,4 @@ def WeatherPage():
     return layout
 
 
-CWJSON = generateCurrentWeatherJSON()
+# CWJSON = generateCurrentWeatherJSON()

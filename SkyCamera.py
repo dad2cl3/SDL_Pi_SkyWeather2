@@ -59,7 +59,7 @@ def takeSkyPicture():
         OTtval = "{0:0.1f} ".format(val) + util.returnTemperatureCFUnit()
 
         myText = "SkyWeather2 V%s %s Wind Speed: %s Wind Gust: %s Temp: %s " % (
-        config.SWVERSION, dt.datetime.now().strftime('%d-%b-%Y %H:%M:%S'), WindStval, WindGtval, OTtval)
+            config.SWVERSION, dt.datetime.now().strftime('%d-%b-%Y %H:%M:%S'), WindStval, WindGtval, OTtval)
         print("mySkyCameraText=", myText)
 
         # Draw the text
@@ -177,7 +177,6 @@ def sendSkyWeather():
         },
         "utc": currentTime,
         "sensors": [
-
             {
                 "name": "OutsideTemperature",
                 "value": state.OutdoorTemperature,
@@ -223,12 +222,12 @@ def sendSkyWeather():
             },
             {
                 "name": "WindSpeed",
-                "value": state.WindSpeed,
+                "value": state.WindSpeed * 3.6,
                 "units": "kph"
             },
             {
                 "name": "WindGust",
-                "value": state.WindGust,
+                "value": state.WindGust * 3.6,
                 "units": "kph"
             },
             {
@@ -268,14 +267,7 @@ def sendSkyWeather():
                 "name": "OutdoorAirQuality",
                 "value": state.AQI,
                 "units": "AQI"
-            },
-
-            # {
-            #	"name":"UVSunlightIndex",
-            #	"value": state.SunlightUVIndex,
-            #                "units" : "index"
-            # }
-
+            }
         ],
         "solarpower": [
             {
@@ -393,12 +385,11 @@ def sendSkyWeather():
 
         ]
     }
-    import json
 
-    # sending post request and saving response as response object 
+    # sending post request and saving response as response object
     r = requests.post(url=API_ENDPOINT, json=data)
     # print (data )
-    # extracting response text  
+    # extracting response text
     pastebin_url = r.text
     if (config.SWDEBUG):
         print("The pastebin URL is (r.text):%s" % pastebin_url)

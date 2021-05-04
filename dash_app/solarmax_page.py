@@ -20,13 +20,13 @@ import config
 #display which SolarMAX ID
 SolarMAXID = 1
 
-def build_graph1_figure():
-    con = mdb.connect(
-        "192.168.0.48",
-        "jachal",
-        config.MySQL_Password,
-        "WeatherSenseWireless"
-    )
+def build_graph1_figure(con):
+    # con = mdb.connect(
+    #     "192.168.0.48",
+    #     "jachal",
+    #     config.MySQL_Password,
+    #     "WeatherSenseWireless"
+    # )
 
     # last 7 days
     timeDelta = datetime.timedelta(days=7)
@@ -55,13 +55,13 @@ def build_graph1_figure():
     return figure
 
 
-def build_graph2_figure():
-    con = mdb.connect(
-        "192.168.0.48",
-        "jachal",
-        config.MySQL_Password,
-        "WeatherSenseWireless"
-    )
+def build_graph2_figure(con):
+    # con = mdb.connect(
+    #     "192.168.0.48",
+    #     "jachal",
+    #     config.MySQL_Password,
+    #     "WeatherSenseWireless"
+    # )
 
     # last 7 days
     timeDelta = datetime.timedelta(days=7)
@@ -87,19 +87,19 @@ def build_graph2_figure():
     return figure
 
 
-def SolarMAXPage():
+def SolarMAXPage(con):
     layout = html.Div(children=[
 
         html.H1("SolarMAX Charts", style={'textAlign': 'center'}),
 
         dcc.Graph(
             id={'type': 'SolarMAXgraph', 'index': "2"},
-            figure=build_graph1_figure(),
+            figure=build_graph1_figure(con),
         ),
 
         dcc.Graph(
             id={'type': 'SolarMAXgraph', 'index': "3"},
-            figure=build_graph2_figure(),
+            figure=build_graph2_figure(con),
         ),
 
     ], className="container")
