@@ -30,7 +30,7 @@ import readJSON
 readJSON.readJSON("../")
 readJSON.readJSONSGSConfiguration("../")
 
-# import MySQLdb as mdb
+import MySQLdb as mdb
 
 
 

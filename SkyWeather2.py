@@ -14,7 +14,7 @@ from __future__ import print_function
 import json
 import config
 
-config.SWVERSION = "019"
+config.SWVERSION = "025"
 # system imports
 
 import time
@@ -23,7 +23,7 @@ import apscheduler.events
 
 import subprocess
 import pclogging
-import traceback
+# import traceback
 import sys
 import picamera
 
@@ -43,15 +43,17 @@ import os
 
 # Scheduler Helpers
 
+
 # print out faults inside events
 def ap_my_listener(event):
+    print(event)
+
     if event.exception:
         print(event.exception)
         print(event.traceback)
 
 
 # helper functions
-
 
 def shutdownPi(why):
     pclogging.systemlog(config.INFO, "Pi Shutting Down: %s" % why)
@@ -70,6 +72,70 @@ def rebootPi(why):
     pclogging.systemlog(config.INFO, "Pi Rebooting: %s" % why)
     os.system("sudo shutdown -r now")
 
+
+import MySQLdb as mdb
+
+# Program Requirement Checking
+
+if (config.enable_MySQL_Logging):
+    # SkyWeather2 SQL Database
+
+    try:
+        con = mdb.connect(
+            "192.168.0.48",
+            "jachal",
+            config.MySQL_Password,
+            "SkyWeather2"
+        )
+
+    except:
+        print("--------")
+        print("MySQL Database SkyWeather2 Not Installed.")
+        print("Run this command:")
+        print("sudo mysql -u root -p < SkyWeather2.sql")
+        print("SkyWeather2 Stopped")
+        print("--------")
+        sys.exit("SkyWeather2 Requirements Error Exit")
+
+    # WeatherSense SQL Database
+    try:
+        con = mdb.connect(
+            "192.168.0.48",
+            "jachal",
+            config.MySQL_Password,
+            "WeatherSenseWireless"
+        )
+
+    except:
+        print("--------")
+        print("MySQL Database WeatherSenseWireless Not Installed.")
+        print("Run this command:")
+        print("sudo mysql -u root -p < WeatherSenseWireless.sql")
+        print("SkyWeather2 Stopped")
+        print("--------")
+        sys.exit("SkyWeather2 Requirements Error Exit")
+
+    # Check for updates having been applied
+    try:
+
+        con = mdb.connect(
+            "192.168.0.48",
+            "jachal",
+            config.MySQL_Password,
+            "WeatherSenseWireless"
+        )
+        cur = con.cursor()
+        query = "SELECT * FROM AS433MHZ"
+        cur.execute(query)
+    except:
+        # print(traceback.format_exc())
+        print("--------")
+        print("MySQL Database WeatherSenseWireless Updates Not Installed.")
+        print("Run this command:")
+        print("sudo mysql -u root -p WeatherSenseWireless < updateWeatherSenseWireless.sql")
+        print("SkyWeather2 Stopped")
+        print("--------")
+        sys.exit("SkyWeather2 Requirements Error Exit")
 
 # main program
 print("")
@@ -130,15 +196,17 @@ except ImportError:
 
 # Initialise the BMP280
 bus = SMBus(1)
-bmp280 = BMP280(i2c_dev=bus, i2c_addr=0x77)
 
 try:
     bmp280 = BMP280(i2c_dev=bus, i2c_addr=0x77)
+
+    state.BarometricTemperature = round(bmp280.get_temperature(), 2)
+
     config.BMP280_Present = True
-except Exception as e:
-    if config.SWDEBUG:
-        print("I/O error({0}): {1}".format(e.errno, e.strerror))
-        print(traceback.format_exc())
+except:
+    if (config.SWDEBUG):
+        pass
+        # print(traceback.format_exc())
 
     config.BMP280_Present = False
 
@@ -168,15 +236,17 @@ except:
 print("----------------------")
 print(util.returnStatusLine("BMP280", config.BMP280_Present))
 print(util.returnStatusLine("SkyCam", config.Camera_Present))
-print(util.returnStatusLine("AS3935", config.AS3935_Present))
 print(util.returnStatusLine("OLED", config.OLED_Present))
 print(util.returnStatusLine("SunAirPlus/SunControl", config.SunAirPlus_Present))
 print(util.returnStatusLine("SolarMAX", config.SolarMAX_Present))
 print(util.returnStatusLine("DustSensor", config.DustSensor_Present))
 print()
-print(util.returnStatusLine("UseBlynk", config.USEBLYNK))
-print(util.returnStatusLine("UseMySQL", config.enable_MySQL_Logging))
-print(util.returnStatusLine("UseMQTT", config.MQTT_Enable))
+print(util.returnStatusEnable("UseBlynk", config.USEBLYNK))
+print(util.returnStatusEnable("UseWSLIGHTNING", config.USEWSLIGHTNING))
+print(util.returnStatusEnable("UseWSAQI", config.USEWSAQI))
+print(util.returnStatusEnable("UseWSSKYCAM", config.USEWSSKYCAM))
+print(util.returnStatusEnable("UseMySQL", config.enable_MySQL_Logging))
+print(util.returnStatusEnable("UseMQTT", config.MQTT_Enable))
 print(util.returnStatusLine("Check WLAN", config.enable_WLAN_Detection))
 print(util.returnStatusLine("WeatherUnderground", config.WeatherUnderground_Present))
 print(util.returnStatusLine("UseWeatherStem", config.USEWEATHERSTEM))
@@ -240,6 +310,7 @@ scheduler.add_job(wiredSensors.readWiredSensors, 'interval', args=[bmp280, hdc10
 # scheduler.add_job(state.printState, 'interval', seconds=60)
 
 # if (config.USEBLYNK):
+
 # scheduler.add_job(updateBlynk.blynkStateUpdate, 'interval', seconds=30)
 
 # if (config.MQTT_Enable):
@@ -265,6 +336,34 @@ scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=5*60)
 # scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15*60)
 # scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=5*60)
 scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=2*60)
+
+#     scheduler.add_job(updateBlynk.blynkStateUpdate, 'interval', seconds=30)
+#
+# if (config.MQTT_Enable):
+#     scheduler.add_job(publishMQTT.publish, 'interval', seconds=config.MQTT_Send_Seconds)
+
+scheduler.add_job(watchDog.patTheDog, 'interval', seconds=20)  # reset the WatchDog Timer
+
+# every 5 days at 00:04, reboot
+scheduler.add_job(rebootPi, 'cron', day='5-30/5', hour=0, minute=4, args=["5 day Reboot"])
+
+# check for Barometric Trend (every 15 minutes)
+scheduler.add_job(util.barometricTrend, 'interval', seconds=15 * 60)
+
+if (config.DustSensor_Present):
+    # DustSensor.read_AQI() # get current value
+    scheduler.add_job(DustSensor.read_AQI, 'interval', seconds=60 * 12)
+
+if (config.USEWSAQI):
+    wirelessSensors.WSread_AQI()  # get current value
+    scheduler.add_job(wirelessSensors.WSread_AQI, 'interval', seconds=60 * 20)
+
+# weather sensors
+
+# scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=3*60)
+scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=15 * 60)
+
+scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15 * 60)
 
 # sky camera
 if (config.USEWEATHERSTEM):
@@ -299,3 +398,19 @@ print("-----------------")
 # Main Loop
 while True:
     time.sleep(1.0)
+
+run_flag = True
+
+# Main Loop
+while run_flag:
+    try:
+        time.sleep(1.0)
+    except KeyboardInterrupt as ki:
+        run_flag = False
+
+try:
+    # scheduler.
+    # scheduler.remove_all_jobs()
+    scheduler.shutdown(wait=False)
+except Exception as e:
+    print(e)

@@ -12,6 +12,9 @@ SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
+CREATE DATABASE IF NOT EXISTS SkyWeather2;
+
+USE SkyWeather2;
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -32,7 +35,7 @@ USE SkyWeather2;
 
 CREATE TABLE `IndoorTHSensors` (
   `id` int(11) NOT NULL,
-  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp(), 
   `DeviceID` int(11) NOT NULL,
   `ChannelID` int(11) NOT NULL,
   `Temperature` float NOT NULL,
@@ -49,7 +52,7 @@ CREATE TABLE `IndoorTHSensors` (
 
 CREATE TABLE `PowerSystem` (
   `ID` int(11) NOT NULL,
-  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp(),
   `batteryVoltage` float NOT NULL,
   `batteryCurrent` float NOT NULL,
   `solarVoltage` float NOT NULL,
@@ -72,7 +75,7 @@ CREATE TABLE `SystemLog` (
   `ID` int(11) NOT NULL,
   `Level` int(11) NOT NULL,
   `SystemText` text NOT NULL,
-  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -83,7 +86,7 @@ CREATE TABLE `SystemLog` (
 
 CREATE TABLE `WeatherData` (
   `ID` int(11) NOT NULL,
-  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp() ,
   `OutdoorTemperature` float NOT NULL,
   `OutdoorHumidity` float NOT NULL,
   `IndoorTemperature` float NOT NULL,

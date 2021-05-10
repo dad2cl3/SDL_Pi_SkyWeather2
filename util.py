@@ -1,7 +1,7 @@
 # utility programs
 import state
-import updateBlynk
-import RPi.GPIO as GPIO
+# import updateBlynk
+# import RPi.GPIO as GPIO
 
 # Check for user imports
 import config
@@ -13,6 +13,15 @@ def returnStatusLine(device, state):
         returnString = returnString + ":   \t\tPresent"
     else:
         returnString = returnString + ":   \t\tNot Present"
+    return returnString
+
+
+def returnStatusEnable(device, state):
+    returnString = device
+    if (state == True):
+        returnString = returnString + ":   \t\tEnabled"
+    else:
+        returnString = returnString + ":   \t\tDisabled"
     return returnString
 
 
@@ -42,9 +51,9 @@ def returnTemperatureCFUnit():
     # print("config.English_Metric=", config.English_Metric)
     if (config.English_Metric == True):
         # return Metric 
-        return "C"
+        return "ºC"
     else:
-        return "F"
+        return "ºF"
 
 
 def returnWindSpeedUnit():
@@ -98,8 +107,7 @@ def returnWindDirection(windDirection):
 
 
 def returnPercentLeftInBattery(currentVoltage, maxVolt):
-    if (config.SolarMAX_Type == "LEAD"):
-
+    if (maxVolt > 12):
         returnPercent = ((currentVoltage - 11.00) / (2.6)) * 100.00
         if (returnPercent > 100.00):
             returnPercent = 100.0

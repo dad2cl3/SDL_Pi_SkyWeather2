@@ -32,7 +32,7 @@ def blynkInit():
         r = requests.get(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V43?value=255')
 
         if (DEBUGBLYNK):
-            print("config.English_Metric = ", value)
+            print("config.English_Metric = ", config.English_Metric)
         if (config.English_Metric == 0):
             r = requests.get(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V8?value=0')
         else:        
@@ -87,7 +87,7 @@ def blynkTerminalUpdate(entry):
         return 0
 
 
-def blynkSolarMAXLine(entry, protocol):
+def blynkSolarMAXLine(entry):
     try:
         put_header={"Content-Type": "application/json"}
 
@@ -174,7 +174,10 @@ def blynkStateUpdate():
         # do the graphs
 
 
-        val = state.AQI 
+        if (config.USEWSAQI):
+            val = state.WS_AQI
+        else:
+            val = state.AQI 
         put_body = json.dumps([val])
         if (DEBUGBLYNK):
             print("blynkStateUpdate:Pre:put_body:",put_body)
@@ -239,7 +242,10 @@ def blynkStateUpdate():
         r = requests.put(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V19', data=put_body, headers=put_header)
 
         # outdoor Air Quality
-        val = state.AQI
+        if (config.USEWSAQI):
+            val = state.WS_AQI
+        else:
+            val = state.AQI 
         put_body = json.dumps([val])
         r = requests.put(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V20', data=put_body, headers=put_header)
         
@@ -271,7 +277,7 @@ def blynkStateUpdate():
 
         #barometric Pressure 
         if (config.English_Metric == 1):
-            tval = "{0:0.2f}hPa".format(state.BarometricPressureSeaLevel) 
+            tval = "{0:0.2f}hPa".format(state.BarometricPressureSeaLevel*10.0)
         else:
             tval = "{0:0.2f}in".format((state.BarometricPressureSeaLevel * 0.2953)) 
         put_body = json.dumps([tval])
@@ -323,16 +329,20 @@ def blynkStateUpdate():
         put_body = json.dumps([val])
         r = requests.put(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V62', data=put_body, headers=put_header)
 
-        if (config.SolarMAX_Present == True):
-        
-            val = util.returnTemperatureCF(state.SolarMaxInsideTemperature)
-            tval = "{0:0.1f} ".format(val) + util.returnTemperatureCFUnit()
-            put_body = json.dumps([tval])
-            r = requests.put(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V76', data=put_body, headers=put_header)
 
-            val = "{0:0.1f}%".format(state.SolarMaxInsideHumidity) 
-            put_body = json.dumps([val])
-            r = requests.put(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V77', data=put_body, headers=put_header)
+        
+        if (config.SolarMAX_Present == True):
+            
+            blynkSolarMAXLine(state.SolarMAXLastReceived)
+            if (state.SolarMAXLastReceived != "Never"): 
+                val = util.returnTemperatureCF(state.SolarMaxInsideTemperature)
+                tval = "{0:0.1f} ".format(val) + util.returnTemperatureCFUnit()
+                put_body = json.dumps([tval])
+                r = requests.put(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V76', data=put_body, headers=put_header)
+
+                val = "{0:0.1f}%".format(state.SolarMaxInsideHumidity) 
+                put_body = json.dumps([val])
+                r = requests.put(config.BLYNK_URL+config.BLYNK_AUTH+'/update/V77', data=put_body, headers=put_header)
 
         
         

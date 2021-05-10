@@ -144,12 +144,17 @@ def takeSkyPicture():
     #     sendSkyWeather()
 
 
+import base64
+
+
+
 def sendSkyWeather():
     # defining the api-endpoint
     API_ENDPOINT = "https://skyweather.weatherstem.com/"
 
     with open("static/skycamera.jpg", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read())
+        encoded_string = encoded_string.decode('utf-8')
 
     if (config.SWDEBUG):
         print("--------------------")
@@ -220,12 +225,12 @@ def sendSkyWeather():
             },
             {
                 "name": "WindSpeed",
-                "value": state.WindSpeed,
+                "value": state.WindSpeed * 3.6,
                 "units": "kph"
             },
             {
                 "name": "WindGust",
-                "value": state.WindGust,
+                "value": state.WindGust * 3.6,
                 "units": "kph"
             },
             {
@@ -265,6 +270,7 @@ def sendSkyWeather():
                 "name": "OutdoorAirQuality",
                 "value": state.AQI,
                 "units": "AQI"
+
             },
 
             # {
@@ -272,7 +278,6 @@ def sendSkyWeather():
             #	"value": state.SunlightUVIndex,
             #                "units" : "index"
             # }
-
         ],
         "solarpower": [
             {
@@ -380,9 +385,8 @@ def sendSkyWeather():
                 "units": "%"
 
             }
+        ],
 
-        ]
-        ,
         "cameras": [
             {
                 "name": "Sky Camera",
@@ -396,7 +400,8 @@ def sendSkyWeather():
     # sending post request and saving response as response object
     r = requests.post(url=API_ENDPOINT, json=data)
     # print (data )
-    # extracting response text  
+    # extracting response text
+
     pastebin_url = r.text
     if (config.SWDEBUG):
         print("The pastebin URL is (r.text):%s" % pastebin_url)

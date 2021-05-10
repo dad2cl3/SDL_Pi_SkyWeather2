@@ -95,7 +95,7 @@ def fetchSystemLog():
 
         try:
                 #print("trying database")
-                con = mdb.connect('192.168.0.48', 'jachal', 'amorcito', 'SkyWeather2')
+                con = mdb.connect('192.168.0.48', 'jachal', config.MySQL_Password, 'SkyWeather2');
                 cur = con.cursor()
                 query = "SELECT * FROM SystemLog ORDER BY ID DESC LIMIT 20" 
                 #print("query=", query)

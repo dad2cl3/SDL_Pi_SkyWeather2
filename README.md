@@ -2,6 +2,48 @@
 SkyWeather2
 SwitchDoc Labs
 
+See full bug list and info on releases at:<BR>
+
+https://forum.switchdoc.com/thread/1452/skyweather2-software-releases
+
+
+April 17, 2021 - Version 025 - fixes and updgrades<BR>
+March 12, 2021 - Version 024 - minor fixes, update on README.md for rtl_433<BR>
+March 7, 2021 - Version 023 - Major Update: New WeatherSense devices added<BR>
+WeatherSense Air Quality <BR>
+WeatherSense Lightning<BR>
+WeatherSense SolarMAX2<BR>
+Full MQTT Update<BR>
+WeatherUnderground Added<BR>
+Note:  You need to apply the following commands to upgrade:<BR>
+<pre>
+cd
+cd SDL_Pi_SkyWeather2
+git pull
+sudo pip3 install vcgencmd
+
+sudo mysql -u root -p < WeatherSenseWireless.sql 
+
+sudo mysql -u root -p WeatherSenseWireless < updateWeatherSenseWireless.sql
+</pre>
+(the password that is asked from the mysql command is your mysql root password, by default "password")<BR>
+
+Remember to go to your rtl_433 directory and do the following to update rtl_433:<BR>
+
+cd rtl_433/<BR>
+mkdir build<BR>
+cd build<BR>
+cmake ..<BR>
+make clean <BR>
+make<BR>
+sudo make install<BR>
+
+
+
+<BR>
+February 15, 2021 - Version 022 - Minor Bug Fixes<BR>
+February 2, 2021 - Version 021 - Minor MQTT Fix from Jason, master bugfinder<BR> 
+January 29, 2021 - Version 020 - Minor fix to Pi shutdown<BR> 
 December 14, 2020 - Version 019 - Added AQI Dust Sensor Detection<BR> 
 December 12, 2020 - Version 018 - Corrected Wind Speed/Gust Calculations<BR> 
 December 4, 2020 - Version 017 - Fixed Dust Sensor Power control<BR> 
@@ -21,6 +63,5 @@ https://shop.switchdoc.com/products/16gb-sd-card-with-stretch-smart-garden-syste
 
 
 
-We will be providing a installation guide to the software on a standard BUSTER image in the future, but not a step-by-step guide.  The open source Python software library mantainers change install instructions frequently.
 
 
