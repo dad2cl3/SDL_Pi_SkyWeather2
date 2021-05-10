@@ -97,7 +97,9 @@ def read_AQI():
 
     # hm3301.close()
     powerOffDustSensor()
-    # state.AQI = myAQI
+
+    state.AQI = myAQI
+
     reading = {
         "time": datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S %z'),
         "model": SENSOR_NAME,

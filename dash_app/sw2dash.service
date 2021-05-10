@@ -1,0 +1,15 @@
+[Unit]
+Description=SkyWeather2 Dash Application
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+StandardOutput=file:/var/pyapps/SDL_Pi_SkyWeather2/dash_app/logs/sw2dash.out
+StandardError=file:/var/pyapps/SDL_Pi_SkyWeather2/dash_app/logs/sw2dash.err
+WorkingDirectory=/var/pyapps/SDL_Pi_SkyWeather2/dash_app
+ExecStart=/usr/bin/python3 /var/pyapps/SDL_Pi_SkyWeather2/dash_app/index.py
+
+[Install]
+WantedBy=multi-user.target

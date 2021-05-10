@@ -40,7 +40,7 @@ def readWiredSensors(bmp280, hdc1080):
                         'units': 'hPa'
                     },
                     'altitude': {
-                        'value': round(bmp280.get_altitude(), 4),
+                        'value': config.BMP280_Altitude_Meters,
                         'units': 'm'
                     },
                     'sea_level_pressure': {
@@ -51,10 +51,12 @@ def readWiredSensors(bmp280, hdc1080):
             }
 
             publishMQTT.publish('ws/mallory/barometer/telemetry/', json.dumps(reading))
-            # state.BarometricTemperature = round(bmp280.get_temperature(), 2)
-            # state.BarometricPressure = round(old_div(bmp280.get_pressure(),1000)*100, 5)
+
+            state.BarometricTemperature = round(bmp280.get_temperature(), 2)
+            state.BarometricPressure = round(old_div(bmp280.get_pressure(),1000)*100, 5)
             # state.Altitude = round(bmp280.get_altitude(), 4)
-            # state.BarometricPressureSeaLevel = round(old_div(bmp280.get_sealevel_pressure(config.BMP280_Altitude_Meters),1000)*100, 5)
+            state.Altitude = config.BMP280_Altitude_Meters
+            state.BarometricPressureSeaLevel = round(old_div(bmp280.get_sealevel_pressure(config.BMP280_Altitude_Meters),1000)*100, 5)
         except:
             if (config.SWDEBUG):
                 print(traceback.format_exc())

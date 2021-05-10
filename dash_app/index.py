@@ -1,19 +1,19 @@
-import os
-import shutil
-import glob
+# import os
+# import shutil
+# import glob
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, MATCH, ALL, State
 import dash_bootstrap_components as dbc
-import plotly.express as px
-import plotly.graph_objs as go
+# import plotly.express as px
+# import plotly.graph_objs as go
 from dash.exceptions import PreventUpdate
 import traceback
 import datetime
-import base64
+# import base64
 
-import time
+# import time
 
 import threading
 
@@ -43,7 +43,7 @@ logo = Logo(app)
 
 app.config.suppress_callback_exceptions = True
 
-app.layout =  html.Div(
+app.layout = html.Div(
 
         [
 
@@ -98,7 +98,7 @@ def display_page(pathname):
     nowString =  now.strftime('%Y-%m-%d %H:%M:%S')
     #print("begin=",nowString)
     
-    #print("pathname=", pathname)
+    print("pathname=", pathname)
     #print("previousPathname=", previousPathname)
     i = [i['prop_id'] for i in dash.callback_context.triggered]
     #print('i=', i)
@@ -134,6 +134,7 @@ def display_page(pathname):
     #print("end=",nowString)
     return (logo, nav,myLayout, myLayout2 )
 
+
 ##################
 # Log Page 
 ##################
@@ -143,8 +144,8 @@ def display_page(pathname):
               [State({'type' : 'LPdynamic', 'index' : MATCH}, 'value'  )]
               )
 
+
 def logpageupdate(n_intervals, id, value):
-    
    #if (True): # 1 minutes -10 second timer
    if ((n_intervals % (1*6)) == 0): # 1 minutes -10 second timer
     #print ("---->inputs:",dash.callback_context.inputs) 
@@ -307,7 +308,11 @@ def updateWeatherUpdate(n_intervals,id, value):
             value = "Weather Updated at:" + value
 
             return [value]
-        
+        elif id['index'] == 'WindDirection':
+            wind_dir = weather_page.CWJSON[id['index']]
+            wind_dir_str = weather_page.calc_wind_quadrant(wind_dir)
+            value = str(wind_dir) + weather_page.CWJSON[id['index']+'Units'] + " " + wind_dir_str
+            return [value]
         UpdateCWJSONLock.acquire()
         value = str(weather_page.CWJSON[id['index']]) +" "+ weather_page.CWJSON[id['index']+'Units']
         UpdateCWJSONLock.release()

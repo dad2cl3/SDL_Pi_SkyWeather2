@@ -261,9 +261,10 @@ if (config.DustSensor_Present):
 # weather sensors
 
 # scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=15*60)
-# scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=5*60)
+scheduler.add_job(pclogging.writeWeatherRecord, 'interval', seconds=5*60)
 # scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=15*60)
 # scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=5*60)
+scheduler.add_job(pclogging.writeITWeatherRecord, 'interval', seconds=2*60)
 
 # sky camera
 if (config.USEWEATHERSTEM):

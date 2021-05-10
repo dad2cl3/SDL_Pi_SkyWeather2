@@ -21,7 +21,9 @@ SET time_zone = "+00:00";
 --
 -- Database: `SkyWeather2`
 --
+CREATE DATABASE IF NOT EXISTS SkyWeather2;
 
+USE SkyWeather2;
 -- --------------------------------------------------------
 
 --

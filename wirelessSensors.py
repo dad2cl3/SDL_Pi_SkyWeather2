@@ -94,7 +94,7 @@ def processF020(sLine):
 
     # outside temperature and Humidity
 
-    '''state.mainID = var["id"] 
+    state.mainID = var["id"]
     state.lastMainReading = nowStr()
 
 
@@ -102,11 +102,11 @@ def processF020(sLine):
         pclogging.systemlog(config.INFO,"Main Weather Sensors Found")
         print("Main Weather Sensors Found")
         pclogging.systemlog(config.INFO,"Blynk Updates Started")
-        state.previousMainReading = state.lastMainReading'''
+        state.previousMainReading = state.lastMainReading
 
     wTemp = var["temperature"]
 
-    # ucHumi = var["humidity"]
+    ucHumi = var["humidity"]
 
     wTemp = (wTemp - 400) / 10.0
     # deal with error condtions
@@ -118,19 +118,19 @@ def processF020(sLine):
         # put in previous temperature 
         wtemp = state.OutdoorTemperature
         # print("wTemp=%s %s", (str(wTemp),nowStr() ));
-    '''if (ucHumi > 100.0):
+    if (ucHumi > 100.0):
         # bad humidity
         # put in previous humidity
-        ucHumi  = state.OutdoorHumidity'''
+        ucHumi  = state.OutdoorHumidity
 
     state.OutdoorTemperature = round(((wTemp - 32.0) / (9.0 / 5.0)), 2)
-    # state.OutdoorHumidity =  ucHumi
+    state.OutdoorHumidity =  ucHumi
 
     state.WindSpeed = round(var["avewindspeed"] / 10.0, 1)
     state.WindGust = round(var["gustwindspeed"] / 10.0, 1)
     state.WindDirection = var["winddirection"]
 
-    '''state.TotalRain  = round(var["cumulativerain"]/10.0,1)
+    state.TotalRain  = round(var["cumulativerain"]/10.0,1)
     state.Rain60Minutes = 0.0
 
     wLight = var["light"]
@@ -156,7 +156,7 @@ def processF020(sLine):
     #if (config.SWDEBUG):
     #    print("currentJSON = ", state.StateJSON)
     state.buildJSONSemaphore.release()
-    #print("buildJSONSemaphore released")'''
+    #print("buildJSONSemaphore released")
 
 
 # processes Inside Temperature and Humidity
@@ -170,7 +170,7 @@ def processF016TH(sLine):
     sLine = add_timezone(sLine)
     publishMQTT.publish(topic, sLine)
 
-    '''var = json.loads(sLine)
+    var = json.loads(sLine)
 
     state.mainID = var["device"] + var["channel"]
     state.lastIndoorReading = nowStr()
@@ -196,7 +196,7 @@ def processF016TH(sLine):
     #if (config.SWDEBUG):
     #    print("currentJSON = ", state.StateJSON)
     state.buildJSONSemaphore.release()
-    #print("buildJSONSemaphore released")'''
+    #print("buildJSONSemaphore released")
 
 
 # main read 433HMz Sensor Loop

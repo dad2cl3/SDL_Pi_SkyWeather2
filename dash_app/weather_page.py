@@ -1,13 +1,13 @@
 
-import dash
+# import dash
 import dash_bootstrap_components as dbc
-import dash_html_components as html
+# import dash_html_components as html
 
-from dash.dependencies import Input, Output
+# from dash.dependencies import Input, Output
 import dash_html_components as html
 import dash_core_components as dcc
-import dash_daq as daq
-import plotly.express as px 
+# import dash_daq as daq
+# import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
@@ -18,7 +18,7 @@ import sys
 # imports
 sys.path.append("../")
 
-import state
+# import state
 import config
 import readJSON
 import json
@@ -35,6 +35,16 @@ import MySQLdb as mdb
 ################
 # Weather Status
 ################
+
+def calc_wind_quadrant(wind_dir):
+    quadrants = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]
+    quadrant_size = 22.5
+
+    quadrant_num = round(wind_dir/quadrant_size, 0)
+    quadrant_str = quadrants[int(quadrant_num)]
+
+    return quadrant_str
+
 
 def returnCardinalBucket(windDirection):
       if (windDirection >= 337.5) or (windDirection < 22.5):
@@ -144,12 +154,9 @@ def WUnits():
     return units
 
 
-
-
-
 def generateCurrentWeatherJSON():
         try:
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', 'amorcito', 'SkyWeather2')
                 cur = con.cursor()
                 query = "SELECT * FROM `WeatherData` ORDER BY id DESC LIMIT 1" 
                 #print("query=", query)
@@ -191,16 +198,19 @@ def generateCurrentWeatherJSON():
                 
                 # calendar day rain
                 query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE DATE(TimeStamp) = CURDATE() ORDER by id ASC"
+                print('daily query: {0}'.format(query)) # debug
                 cur.execute(query)
                 rainspanrecords = cur.fetchall()
                 if (len(rainspanrecords) > 0):
                     rainspan = rainspanrecords[len(rainspanrecords)-1][1] - rainspanrecords[0][1]
                 else:
                     rainspan = 0
+
                 CWJSON["CalendarDayRain"] = round(rainspan,2)
 
                 # Calendar Month 
                 query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE MONTH(TimeStamp) = MONTH(NOW()) AND YEAR(TimeStamp) = YEAR(NOW())"
+                print('monthly query: {0}'.format(query))  # debug
                 cur.execute(query)
                 rainspanrecords = cur.fetchall()
 
@@ -216,7 +226,7 @@ def generateCurrentWeatherJSON():
                 before = now - timeDelta
                 before = before.strftime('%Y-%m-%d %H:%M:%S')
                 query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (before)
-
+                print('30 days query: {0}'.format(query))  # debug
                 cur.execute(query)
                 rainspanrecords = cur.fetchall()
 
@@ -233,7 +243,7 @@ def generateCurrentWeatherJSON():
                 before = now - timeDelta
                 before = before.strftime('%Y-%m-%d %H:%M:%S')
                 query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (before)
-
+                print('24 hours query: {0}'.format(query))  # debug
                 cur.execute(query)
                 rainspanrecords = cur.fetchall()
 
@@ -250,7 +260,7 @@ def generateCurrentWeatherJSON():
                 before = now - timeDelta
                 before = before.strftime('%Y-%m-%d %H:%M:%S')
                 query = "SELECT id, TotalRain, TimeStamp FROM WeatherData WHERE (TimeStamp > '%s') ORDER BY TimeStamp " % (before)
-
+                print('7 days query: {0}'.format(query))  # debug
                 cur.execute(query)
                 rainspanrecords = cur.fetchall()
 
@@ -332,10 +342,9 @@ def generateCurrentWeatherJSON():
                 CWJSON["SunlightUVIndexUnits"] = ""
                 CWJSON["AQIUnits"] = ""
                 CWJSON["AQI24AverageUnits"] = ""
-                CWJSON["WindDirectionUnits"] = "deg"
+                CWJSON["WindDirectionUnits"] = "°"
 
-
-                
+                print(CWJSON)
 
                 return CWJSON
         except: 
@@ -353,7 +362,7 @@ def generateCurrentWeatherJSON():
 def fetchWindData(timeDelta):
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', 'amorcito', 'SkyWeather2');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 before = now - timeDelta
@@ -495,7 +504,7 @@ def fetchOTH(timeDelta):
 
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', 'amorcito', 'SkyWeather2');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 before = now - timeDelta
@@ -610,7 +619,7 @@ def fetchAQI(timeDelta):
 
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', 'amorcito', 'SkyWeather2');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 before = now - timeDelta
@@ -717,7 +726,7 @@ def fetchSUV(timeDelta):
 
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', 'amorcito', 'SkyWeather2');
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 before = now - timeDelta
@@ -828,6 +837,7 @@ def WeatherPage():
     maintextcolor = "black"
 
     print("WP-CWSJON=", CWJSON)
+    # print(str(CWJSON["WindDirection"]) + "° " + calc_wind_quadrant(CWJSON["WindDirection"])) # debug
     Row1 = html.Div(
         [ 
         #dbc.Row( dbc.Col(html.Div(id="Weather Instruments"))),
@@ -887,7 +897,8 @@ def WeatherPage():
                          ], id="ot1", className="mini_container",),
                      html.Div(
                          [html.H1(id={'type' : 'WPdynamic', 'index' : "WindDirection"},
-                            children=str(CWJSON["WindDirection"])+" deg", style={"font-size": maintextsize,"color":maintextcolor}), 
+                            # children=str(CWJSON["WindDirection"])+" deg", style={"font-size": maintextsize,"color":maintextcolor}),
+                            children=str(CWJSON["WindDirection"]) + "° " + calc_wind_quadrant(CWJSON["WindDirection"]), style={"font-size": maintextsize,"color":maintextcolor}),
                          html.P("Wind Direction", style={"color":subtextcolor})
                          ], id="ot1", className="mini_container",),
                      html.Div(

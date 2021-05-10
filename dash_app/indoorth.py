@@ -1,14 +1,14 @@
 
 
-import dash
+# import dash
 import dash_bootstrap_components as dbc
-import dash_html_components as html
+# import dash_html_components as html
 
-from dash.dependencies import Input, Output
+# from dash.dependencies import Input, Output
 import dash_html_components as html
 import dash_core_components as dcc
-import dash_daq as daq
-import plotly.express as px 
+# import dash_daq as daq
+# import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
@@ -19,7 +19,7 @@ import sys
 # SGS imports
 sys.path.append("../")
 
-import state
+# import state
 import config
 import readJSON
 import json
@@ -61,7 +61,7 @@ def generateTHData(timeDelta):
 
         try:
                 #print("trying database")
-                con = mdb.connect('localhost', 'root', config.MySQL_Password, 'SkyWeather2');
+                con = mdb.connect('192.168.0.48', 'jachal', 'amorcito', 'SkyWeather2')
                 cur = con.cursor()
                 now = datetime.datetime.now()
                 before = now - timeDelta
